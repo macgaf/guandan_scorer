@@ -1,13 +1,20 @@
+//
+//  GuandanScorerApp.swift
+//  GuandanScorer
+//
+//  Created by 徐添 on 3/6/25.
+//
+
 import SwiftUI
 
 @main
 struct GuandanScorerApp: App {
-    @StateObject private var gameViewModel = GameViewModel()
-    
+    let persistenceController = PersistenceController.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(gameViewModel)
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
-} 
+}
