@@ -10,11 +10,13 @@ import SwiftUI
 @main
 struct GuandanScorerApp: App {
     let persistenceController = PersistenceController.shared
+    @StateObject private var gameManager = GameManager()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .environmentObject(gameManager)
         }
     }
 }
