@@ -1,0 +1,70 @@
+# Xcode
+#
+# 通用Swift项目的.gitignore文件
+
+## 用户设置
+xcuserdata/
+*.xcuserstate
+UserInterfaceState.xcuserstate
+
+## Xcode 8及更早版本的兼容性内容
+*.xcscmblueprint
+*.xccheckout
+
+## Xcode 3及更早版本的兼容性内容
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Swift包管理器
+.build/
+.swiftpm/
+
+# CocoaPods
+Pods/
+*.xcworkspace
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# 代码注入工具
+iOSInjectionProject/
+
+# macOS系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon必须有两个\r字符
+Icon
+
+# 缩略图
+._*
+
+# 可能出现在卷根目录中的文件
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# IDE
+.idea/
+*.swp
+*.swo
