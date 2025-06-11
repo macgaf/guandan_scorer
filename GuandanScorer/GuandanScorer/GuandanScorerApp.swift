@@ -9,13 +9,12 @@ import SwiftUI
 
 @main
 struct GuandanScorerApp: App {
-    let persistenceController = PersistenceController.shared
+    // 移除CoreData依赖
     @StateObject private var gameManager = GameManager()
 
     var body: some Scene {
         WindowGroup {
             MainView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(gameManager)
         }
     }

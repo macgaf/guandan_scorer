@@ -6,48 +6,70 @@ struct HomeView: View {
     @State private var showNewGameSheet = false
     
     var body: some View {
-        NavigationView {
-            VStack {
-                // 搜索框
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                    
-                    TextField("按人名搜索", text: $searchText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-                .padding(.horizontal)
+        VStack {
+            // 搜索框
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
                 
-                // 对局列表
-                List {
-                    ForEach(gameManager.filteredGames(searchText: searchText)) { game in
-                        GameRowView(game: game)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                gameManager.currentGame = game
+                TextField("按人名搜索", text: $searchText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
+            .padding(.horizontal)
+            
+            // 对局列表
+            List {
+                ForEach(gameManager.filteredGames(searchText: searchText)) { game in
+                    GameRowView(game: game)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            gameManager.currentGame = game
+                        }
+                        .swipeActions(edge: .trailing) {
+                            // 删除按钮
+                            Button(role: .destructive) {
+                                withAnimation {
+                                    gameManager.deleteGame(game: game)
+                                }
+                            } label: {
+                                Label("删除", systemImage: "trash")
                             }
-                    }
+                            
+                            // 再来一局按钮
+                            Button {
+                                showNewGameSheet = true
+                                gameManager.prepareNewGame(from: game)
+                            } label: {
+                                Label("再来一局", systemImage: "arrow.clockwise")
+                            }
+                            .tint(.blue)
+                        }
                 }
-                .listStyle(PlainListStyle())
-                
-                // 来一局按钮
-                Button(action: {
-                    showNewGameSheet = true
-                }) {
-                    Text("来一局")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(10)
-                }
-                .padding()
             }
-            .navigationTitle("惯蛋记分器")
-            .sheet(isPresented: $showNewGameSheet) {
-                NewGameView()
+            .listStyle(PlainListStyle())
+            
+            // 来一局按钮
+            Button(action: {
+                showNewGameSheet = true
+            }) {
+                Text("来一局")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
             }
+            .padding()
+        }
+        .navigationTitle("惯蛋记分器")
+        .sheet(isPresented: $showNewGameSheet) {
+            NewGameView(
+                teamAPlayer1: gameManager.newGameSetup?.teamAPlayer1 ?? "",
+                teamAPlayer2: gameManager.newGameSetup?.teamAPlayer2 ?? "",
+                teamBPlayer1: gameManager.newGameSetup?.teamBPlayer1 ?? "",
+                teamBPlayer2: gameManager.newGameSetup?.teamBPlayer2 ?? ""
+            )
         }
     }
 }

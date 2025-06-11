@@ -68,6 +68,7 @@ struct TeamStatus: Codable, Identifiable, Hashable, Equatable {
     var currentLevel: GuandanLevel
     var isDealer: Bool
     var isWinner: Bool = false
+    var score: Int = 0
     
     // 显示名称
     var displayName: String {
@@ -76,12 +77,38 @@ struct TeamStatus: Codable, Identifiable, Hashable, Equatable {
 }
 
 // 回合记录
+// 回合操作类型
+enum RoundActionType: String, Codable {
+    case doubleContribute = "双贡"
+    case singleContribute = "单贡"
+    case selfContribute = "自贡"
+    case win = "获胜"
+}
+
 struct Round: Codable, Identifiable, Hashable, Equatable {
     let id = UUID()
     var teamA: TeamStatus
     var teamB: TeamStatus
-    var timestamp: Date
+    var timestamp: Date = Date()
     var notes: String = ""
+    
+    // 新增属性
+    var actionType: RoundActionType = .doubleContribute
+    var actingTeamName: String = ""
+    var level: GuandanLevel = .two
+    
+    // 初始化方法
+    init(teamA: TeamStatus, teamB: TeamStatus) {
+        self.teamA = teamA
+        self.teamB = teamB
+    }
+    
+    // 兼容旧的初始化方法
+    init(teamA: TeamStatus, teamB: TeamStatus, timestamp: Date) {
+        self.teamA = teamA
+        self.teamB = teamB
+        self.timestamp = timestamp
+    }
     
     // 获取赢家
     var winner: TeamStatus? {
@@ -92,6 +119,14 @@ struct Round: Codable, Identifiable, Hashable, Equatable {
         }
         return nil
     }
+}
+
+// 新游戏设置
+struct NewGameSetup {
+    var teamAPlayer1: String
+    var teamAPlayer2: String
+    var teamBPlayer1: String
+    var teamBPlayer2: String
 }
 
 // 对局
@@ -116,7 +151,10 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             toTeam.isDealer = true
             fromTeam.isDealer = false
             
-            let newRound = Round(teamA: teamA, teamB: teamB, timestamp: Date())
+            var newRound = Round(teamA: teamA, teamB: teamB)
+            newRound.actionType = .doubleContribute
+            newRound.actingTeamName = "\(fromTeam.player1) & \(fromTeam.player2)"
+            newRound.level = toTeam.currentLevel
             rounds.append(newRound)
         }
     }
@@ -128,7 +166,10 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             toTeam.isDealer = true
             fromTeam.isDealer = false
             
-            let newRound = Round(teamA: teamA, teamB: teamB, timestamp: Date())
+            var newRound = Round(teamA: teamA, teamB: teamB)
+            newRound.actionType = .singleContribute
+            newRound.actingTeamName = "\(fromTeam.player1) & \(fromTeam.player2)"
+            newRound.level = toTeam.currentLevel
             rounds.append(newRound)
         }
     }
@@ -139,7 +180,10 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             team.currentLevel = newLevel
             // 自贡不改变庄家
             
-            let newRound = Round(teamA: teamA, teamB: teamB, timestamp: Date())
+            var newRound = Round(teamA: teamA, teamB: teamB)
+            newRound.actionType = .selfContribute
+            newRound.actingTeamName = "\(team.player1) & \(team.player2)"
+            newRound.level = team.currentLevel
             rounds.append(newRound)
         }
     }
@@ -159,7 +203,10 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             updatedTeamB.isWinner = true
         }
         
-        let finalRound = Round(teamA: updatedTeamA, teamB: updatedTeamB, timestamp: Date())
+        var finalRound = Round(teamA: updatedTeamA, teamB: updatedTeamB)
+        finalRound.actionType = .win
+        finalRound.actingTeamName = "\(team.player1) & \(team.player2)"
+        finalRound.level = team.currentLevel
         rounds.append(finalRound)
     }
 }
@@ -168,6 +215,7 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
 class GameManager: ObservableObject {
     @Published var games: [Game] = []
     @Published var currentGame: Game?
+    @Published var newGameSetup: NewGameSetup?
     
     // 过滤游戏列表
     func filteredGames(searchText: String) -> [Game] {
@@ -196,6 +244,24 @@ class GameManager: ObservableObject {
     }
     
     // 结束游戏
+    // 删除游戏
+    func deleteGame(game: Game) {
+        if let index = games.firstIndex(where: { $0.id == game.id }) {
+            games.remove(at: index)
+            saveGames()
+        }
+    }
+    
+    // 准备新游戏（来自现有游戏）
+    func prepareNewGame(from game: Game) {
+        newGameSetup = NewGameSetup(
+            teamAPlayer1: game.teamA.player1,
+            teamAPlayer2: game.teamA.player2,
+            teamBPlayer1: game.teamB.player1,
+            teamBPlayer2: game.teamB.player2
+        )
+    }
+    
     func endGame(game: Game) {
         if let index = games.firstIndex(where: { $0.id == game.id }) {
             games[index].isCompleted = true
@@ -205,7 +271,7 @@ class GameManager: ObservableObject {
     }
     
     // 存储游戏
-    private func saveGames() {
+    func saveGames() {
         // 这里使用UserDefaults临时存储数据
         // 在实际应用中，应该使用CoreData
         if let encoded = try? JSONEncoder().encode(games) {

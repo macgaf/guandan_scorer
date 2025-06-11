@@ -6,24 +6,37 @@ struct GameView: View {
     @State private var showTeamAActions = false
     @State private var showTeamBActions = false
     @State private var historyIndex = 0 // 用于回退和前进
+    @State private var displayedGame: Game // 用于显示当前状态
+    
+    init(game: Binding<Game>) {
+        self._game = game
+        self._displayedGame = State(initialValue: game.wrappedValue)
+    }
     
     var body: some View {
         VStack {
             // 第一排 - 队伍信息和分数
             HStack(spacing: 0) {
                 // A队信息
-                TeamScoreView(team: $game.teamA)
+                TeamScoreView(team: $displayedGame.teamA)
                     .frame(maxWidth: .infinity)
-                    .background(game.teamA.isDealer ? Color.yellow.opacity(0.1) : Color.clear)
+                    .background(displayedGame.teamA.isDealer ? Color.yellow.opacity(0.1) : Color.clear)
                     .onTapGesture {
-                        showTeamAActions = true
+                        // 只有当没有回退时才允许操作
+                        if historyIndex == 0 {
+                            showTeamAActions = true
+                        }
                     }
                     .sheet(isPresented: $showTeamAActions) {
                         TeamActionsView(
                             isPresented: $showTeamAActions,
                             actingTeam: $game.teamA,
                             opposingTeam: $game.teamB,
-                            game: $game
+                            game: $game,
+                            onActionComplete: { 
+                                // 更新显示的游戏状态
+                                displayedGame = game
+                            }
                         )
                     }
                 
@@ -33,29 +46,34 @@ struct GameView: View {
                     .foregroundColor(.gray.opacity(0.5))
                 
                 // B队信息
-                TeamScoreView(team: $game.teamB)
+                TeamScoreView(team: $displayedGame.teamB)
                     .frame(maxWidth: .infinity)
-                    .background(game.teamB.isDealer ? Color.yellow.opacity(0.1) : Color.clear)
+                    .background(displayedGame.teamB.isDealer ? Color.yellow.opacity(0.1) : Color.clear)
                     .onTapGesture {
-                        showTeamBActions = true
+                        // 只有当没有回退时才允许操作
+                        if historyIndex == 0 {
+                            showTeamBActions = true
+                        }
                     }
                     .sheet(isPresented: $showTeamBActions) {
                         TeamActionsView(
                             isPresented: $showTeamBActions,
                             actingTeam: $game.teamB,
                             opposingTeam: $game.teamA,
-                            game: $game
+                            game: $game,
+                            onActionComplete: {
+                                // 更新显示的游戏状态
+                                displayedGame = game
+                            }
                         )
                     }
             }
             .frame(height: 150)
-            .cornerRadius(10)
-            .padding()
             
             // 回合历史记录列表
             List {
-                ForEach(Array(game.rounds.enumerated().reversed()), id: \.element.id) { index, round in
-                    RoundHistoryRow(round: round, roundNumber: game.rounds.count - index)
+                ForEach(Array(displayedGame.rounds.enumerated().reversed()), id: \.element.id) { index, round in
+                    RoundHistoryRow(round: round, roundNumber: displayedGame.rounds.count - index)
                 }
             }
             .listStyle(PlainListStyle())
@@ -66,12 +84,18 @@ struct GameView: View {
                 Button(action: {
                     if historyIndex < game.rounds.count - 1 {
                         historyIndex += 1
+                        // 更新显示的游戏状态
+                        updateDisplayedGame()
                     }
                 }) {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.title)
-                        .padding()
-                        .background(Circle().fill(Color.gray.opacity(0.2)))
+                    HStack {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.title2)
+                        Text("回退")
+                            .font(.headline)
+                    }
+                    .padding()
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.blue.opacity(0.2)))
                 }
                 .disabled(historyIndex >= game.rounds.count - 1)
                 
@@ -81,12 +105,18 @@ struct GameView: View {
                 Button(action: {
                     if historyIndex > 0 {
                         historyIndex -= 1
+                        // 更新显示的游戏状态
+                        updateDisplayedGame()
                     }
                 }) {
-                    Image(systemName: "arrow.uturn.forward")
-                        .font(.title)
-                        .padding()
-                        .background(Circle().fill(Color.gray.opacity(0.2)))
+                    HStack {
+                        Text("前进")
+                            .font(.headline)
+                        Image(systemName: "arrow.uturn.forward")
+                            .font(.title2)
+                    }
+                    .padding()
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.blue.opacity(0.2)))
                 }
                 .disabled(historyIndex <= 0)
             }
@@ -94,6 +124,30 @@ struct GameView: View {
         }
         .navigationTitle("对局")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // 初始化显示状态
+            displayedGame = game
+        }
+    }
+    
+    // 根据历史索引更新显示的游戏状态
+    private func updateDisplayedGame() {
+        if historyIndex == 0 {
+            // 如果索引为0，显示当前状态
+            displayedGame = game
+        } else if game.rounds.count >= historyIndex {
+            // 创建一个游戏副本，只包含到指定历史点的回合
+            var historicalGame = game
+            historicalGame.rounds = Array(game.rounds.prefix(game.rounds.count - historyIndex))
+            
+            // 从最后一轮获取队伍状态
+            if let lastRound = historicalGame.rounds.last {
+                historicalGame.teamA = lastRound.teamA
+                historicalGame.teamB = lastRound.teamB
+            }
+            
+            displayedGame = historicalGame
+        }
     }
 }
 
@@ -102,39 +156,38 @@ struct TeamScoreView: View {
     @Binding var team: TeamStatus
     
     var body: some View {
-        VStack(spacing: 10) {
-            // 队员名称
+        VStack(spacing: 5) {
+            // 胜利标记
+            if team.isWinner {
+                Image(systemName: "crown.fill")
+                    .foregroundColor(.orange)
+                    .padding(.bottom, 2)
+            }
+            
+            // 玩家名称
             Text("\(team.player1) & \(team.player2)")
                 .font(.headline)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+                .lineLimit(1)
+                .truncationMode(.tail)
             
-            // 当前分数
-            Text(team.currentLevel.rawValue)
-                .font(.system(size: 48, weight: .bold))
-            
-            // 庄家标识
+            // 庄家标记
             if team.isDealer {
-                Text("庄家")
+                Text("(庄)")
                     .font(.caption)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 2)
-                    .background(Color.yellow)
-                    .cornerRadius(10)
+                    .foregroundColor(.orange)
             }
             
-            // 赢家标识
-            if team.isWinner {
-                Text("胜利")
-                    .font(.caption)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 2)
-                    .background(Color.green)
-                    .cornerRadius(10)
-            }
+            // 当前级别
+            Text("级别: \(team.currentLevel.rawValue)")
+                .font(.body)
+                .padding(.vertical, 2)
+            
+            // 分数
+            Text("得分: \($team.score)")
+                .font(.title3)
+                .fontWeight(.bold)
         }
-        .padding()
+        .padding(.vertical)
     }
 }
 
@@ -145,73 +198,45 @@ struct RoundHistoryRow: View {
     
     var body: some View {
         HStack {
-            // 回合编号
-            Text("#\(roundNumber)")
+            Text("第\(roundNumber)回合")
                 .font(.headline)
-                .foregroundColor(.gray)
             
             Spacer()
             
-            // A队状态
-            HStack {
-                if round.teamA.isDealer {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
-                }
-                
-                Text(round.teamA.currentLevel.rawValue)
-                    .font(.headline)
-                
-                if round.teamA.isWinner {
-                    Text("(胜)")
-                        .foregroundColor(.green)
-                }
-            }
-            
-            Text("vs")
-                .foregroundColor(.gray)
-                .padding(.horizontal)
-            
-            // B队状态
-            HStack {
-                if round.teamB.isWinner {
-                    Text("(胜)")
-                        .foregroundColor(.green)
-                }
-                
-                Text(round.teamB.currentLevel.rawValue)
-                    .font(.headline)
-                
-                if round.teamB.isDealer {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
-                }
-            }
-            
-            Spacer()
-            
-            // 时间
-            Text(formatDate(round.timestamp))
-                .font(.caption)
-                .foregroundColor(.gray)
+            // 显示这一回合的操作
+            Text(actionDescription(round: round))
+                .font(.body)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 5)
     }
     
-    // 格式化日期
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: date)
+    private func actionDescription(round: Round) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "HH:mm:ss"
+        let timeString = dateFormatter.string(from: round.timestamp)
+        
+        if round.actionType == .doubleContribute {
+            return "[\(timeString)] \(round.actingTeamName) 双贡 \(round.level.rawValue)"
+        } else if round.actionType == .singleContribute {
+            return "[\(timeString)] \(round.actingTeamName) 单贡 \(round.level.rawValue)"
+        } else if round.actionType == .selfContribute {
+            return "[\(timeString)] \(round.actingTeamName) 自贡 \(round.level.rawValue)"
+        } else if round.actionType == .win {
+            return "[\(timeString)] \(round.actingTeamName) 获胜"
+        } else {
+            return "[\(timeString)] 未知操作"
+        }
     }
 }
 
 // 队伍操作视图
 struct TeamActionsView: View {
+    @EnvironmentObject var gameManager: GameManager
     @Binding var isPresented: Bool
     @Binding var actingTeam: TeamStatus
     @Binding var opposingTeam: TeamStatus
     @Binding var game: Game
+    var onActionComplete: (() -> Void)? = nil
     
     var body: some View {
         NavigationView {
@@ -232,7 +257,9 @@ struct TeamActionsView: View {
                     game.doubleContribution(fromTeam: &tempActing, toTeam: &tempOpposing)
                     actingTeam = tempActing
                     opposingTeam = tempOpposing
+                    gameManager.saveGames()
                     isPresented = false
+                    onActionComplete?()
                 }
                 
                 // 单贡按钮
@@ -242,7 +269,9 @@ struct TeamActionsView: View {
                     game.singleContribution(fromTeam: &tempActing, toTeam: &tempOpposing)
                     actingTeam = tempActing
                     opposingTeam = tempOpposing
+                    gameManager.saveGames()
                     isPresented = false
+                    onActionComplete?()
                 }
                 
                 // 自贡按钮
@@ -250,7 +279,9 @@ struct TeamActionsView: View {
                     var tempActing = actingTeam
                     game.selfContribution(team: &tempActing)
                     actingTeam = tempActing
+                    gameManager.saveGames()
                     isPresented = false
+                    onActionComplete?()
                 }
                 
                 // 胜利按钮 (当A级别时或对方A3时显示)
@@ -260,7 +291,9 @@ struct TeamActionsView: View {
                         var tempActing = actingTeam
                         game.winGame(team: &tempActing)
                         actingTeam = tempActing
+                        gameManager.saveGames()
                         isPresented = false
+                        onActionComplete?()
                     }
                 }
                 
@@ -296,30 +329,5 @@ struct ActionButton: View {
             .foregroundColor(.white)
             .cornerRadius(10)
         }
-    }
-}
-
-#Preview {
-    NavigationView {
-        GameView(
-            game: .constant(
-                Game(
-                    teamA: TeamStatus(
-                        player1: "张三",
-                        player2: "李四",
-                        currentLevel: .five,
-                        isDealer: true
-                    ),
-                    teamB: TeamStatus(
-                        player1: "王五",
-                        player2: "赵六",
-                        currentLevel: .jack,
-                        isDealer: false
-                    ),
-                    startTime: Date()
-                )
-            )
-        )
-        .environmentObject(GameManager())
     }
 }
