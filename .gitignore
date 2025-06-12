@@ -6,6 +6,7 @@
 xcuserdata/
 *.xcuserstate
 UserInterfaceState.xcuserstate
+*.log
 
 ## Xcode 8及更早版本的兼容性内容
 *.xcscmblueprint

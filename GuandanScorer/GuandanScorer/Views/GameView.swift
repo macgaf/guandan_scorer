@@ -18,7 +18,7 @@ struct GameView: View {
             // 第一排 - 队伍信息和分数
             HStack(spacing: 0) {
                 // A队信息
-                TeamScoreView(team: $displayedGame.teamA)
+                TeamScoreView(team: $displayedGame.teamA, game: displayedGame)
                     .frame(maxWidth: .infinity)
                     .background(displayedGame.teamA.isDealer ? Color.yellow.opacity(0.1) : Color.clear)
                     .onTapGesture {
@@ -36,6 +36,8 @@ struct GameView: View {
                             onActionComplete: { 
                                 // 更新显示的游戏状态
                                 displayedGame = game
+                                // 将更新后的游戏保存到GameManager
+                                gameManager.updateCurrentGame(game: game)
                             }
                         )
                     }
@@ -46,7 +48,7 @@ struct GameView: View {
                     .foregroundColor(.gray.opacity(0.5))
                 
                 // B队信息
-                TeamScoreView(team: $displayedGame.teamB)
+                TeamScoreView(team: $displayedGame.teamB, game: displayedGame)
                     .frame(maxWidth: .infinity)
                     .background(displayedGame.teamB.isDealer ? Color.yellow.opacity(0.1) : Color.clear)
                     .onTapGesture {
@@ -64,6 +66,8 @@ struct GameView: View {
                             onActionComplete: {
                                 // 更新显示的游戏状态
                                 displayedGame = game
+                                // 将更新后的游戏保存到GameManager
+                                gameManager.updateCurrentGame(game: game)
                             }
                         )
                     }
@@ -154,6 +158,7 @@ struct GameView: View {
 // 队伍分数视图
 struct TeamScoreView: View {
     @Binding var team: TeamStatus
+    var game: Game // 添加game参数以访问rounds信息
     
     var body: some View {
         VStack(spacing: 5) {
@@ -170,21 +175,20 @@ struct TeamScoreView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
             
-            // 庄家标记
-            if team.isDealer {
+            // 庄家标记 - 只有在最后一轮本队是庄家时才显示
+            if game.rounds.last?.dealerTeamId == team.id {
                 Text("(庄)")
                     .font(.caption)
                     .foregroundColor(.orange)
             }
             
-            // 当前级别
-            Text("级别: \(team.currentLevel.rawValue)")
-                .font(.body)
-                .padding(.vertical, 2)
+            // 空白间隔
+            Spacer()
+                .frame(height: 5)
             
-            // 分数
-            Text("得分: \($team.score)")
-                .font(.title3)
+            // 显示级别值
+            Text("\(team.currentLevel.rawValue)")
+                .font(.title)
                 .fontWeight(.bold)
         }
         .padding(.vertical)
@@ -255,9 +259,20 @@ struct TeamActionsView: View {
                     var tempActing = actingTeam
                     var tempOpposing = opposingTeam
                     game.doubleContribution(fromTeam: &tempActing, toTeam: &tempOpposing)
+                    // 确保仅有一方是庄家
+                    if tempOpposing.isDealer {
+                        tempActing.isDealer = false
+                    }
+                    // 保存全局的状态变化
+                    if actingTeam.id == game.teamA.id {
+                        game.teamA = tempActing
+                        game.teamB = tempOpposing
+                    } else {
+                        game.teamA = tempOpposing
+                        game.teamB = tempActing
+                    }
                     actingTeam = tempActing
                     opposingTeam = tempOpposing
-                    gameManager.saveGames()
                     isPresented = false
                     onActionComplete?()
                 }
@@ -267,9 +282,20 @@ struct TeamActionsView: View {
                     var tempActing = actingTeam
                     var tempOpposing = opposingTeam
                     game.singleContribution(fromTeam: &tempActing, toTeam: &tempOpposing)
+                    // 确保仅有一方是庄家
+                    if tempOpposing.isDealer {
+                        tempActing.isDealer = false
+                    }
+                    // 保存全局的状态变化
+                    if actingTeam.id == game.teamA.id {
+                        game.teamA = tempActing
+                        game.teamB = tempOpposing
+                    } else {
+                        game.teamA = tempOpposing
+                        game.teamB = tempActing
+                    }
                     actingTeam = tempActing
                     opposingTeam = tempOpposing
-                    gameManager.saveGames()
                     isPresented = false
                     onActionComplete?()
                 }
@@ -278,8 +304,13 @@ struct TeamActionsView: View {
                 ActionButton(title: "自贡", systemImage: "arrow.uturn.up", color: .blue) {
                     var tempActing = actingTeam
                     game.selfContribution(team: &tempActing)
+                    // 保存全局的状态变化
+                    if actingTeam.id == game.teamA.id {
+                        game.teamA = tempActing
+                    } else {
+                        game.teamB = tempActing
+                    }
                     actingTeam = tempActing
-                    gameManager.saveGames()
                     isPresented = false
                     onActionComplete?()
                 }
@@ -290,8 +321,13 @@ struct TeamActionsView: View {
                     ActionButton(title: "胜利", systemImage: "crown", color: .green) {
                         var tempActing = actingTeam
                         game.winGame(team: &tempActing)
+                        // 保存全局的状态变化
+                        if actingTeam.id == game.teamA.id {
+                            game.teamA = tempActing
+                        } else {
+                            game.teamB = tempActing
+                        }
                         actingTeam = tempActing
-                        gameManager.saveGames()
                         isPresented = false
                         onActionComplete?()
                     }

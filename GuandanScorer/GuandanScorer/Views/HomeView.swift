@@ -110,7 +110,7 @@ struct GameRowView: View {
                                 .foregroundColor(.green)
                         }
                         
-                        if game.teamA.isDealer {
+                        if let lastRound = game.rounds.last, lastRound.dealerTeamId == game.teamA.id {
                             Image(systemName: "star.fill")
                                 .foregroundColor(.yellow)
                         }
@@ -121,7 +121,7 @@ struct GameRowView: View {
                 
                 VStack(alignment: .trailing) {
                     HStack {
-                        if game.teamB.isDealer {
+                        if let lastRound = game.rounds.last, lastRound.dealerTeamId == game.teamB.id {
                             Image(systemName: "star.fill")
                                 .foregroundColor(.yellow)
                         }
