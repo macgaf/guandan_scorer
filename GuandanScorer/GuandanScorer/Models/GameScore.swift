@@ -94,17 +94,12 @@ enum GuandanLevel: String, CaseIterable, Identifiable, Codable {
 
 // 队伍状态
 struct TeamStatus: Codable, Identifiable, Hashable, Equatable {
-    let id = UUID()
+    var id = UUID()
     var player1: String
     var player2: String
     var currentLevel: GuandanLevel
     var isDealer: Bool
     var isWinner: Bool = false
-    
-    // 指定需要编码/解码的属性
-    private enum CodingKeys: String, CodingKey {
-        case  player1, player2, currentLevel, isDealer, isWinner
-    }
     
     // 显示名称
     var displayName: String {
@@ -122,7 +117,7 @@ enum RoundActionType: String, Codable {
 }
 
 struct Round: Codable, Identifiable, Hashable, Equatable {
-    let id = UUID()
+    var id = UUID()
     var teamA: TeamStatus
     var teamB: TeamStatus
     var timestamp: Date = Date()
@@ -133,11 +128,7 @@ struct Round: Codable, Identifiable, Hashable, Equatable {
     var actingTeamName: String = ""
     var level: GuandanLevel = .two
     var dealerTeamId: UUID? // 当前回合的庄家队伍ID
-    
-    // 指定需要编码/解码的属性
-    private enum CodingKeys: String, CodingKey {
-        case teamA, teamB, timestamp, notes, actionType, actingTeamName, level, dealerTeamId
-    }
+    var logMessage: String = "" // 回合日志信息
     
     // 初始化方法
     init(teamA: TeamStatus, teamB: TeamStatus) {
@@ -161,6 +152,49 @@ struct Round: Codable, Identifiable, Hashable, Equatable {
         }
         return nil
     }
+    
+    // 生成回合日志信息
+    mutating func generateLogMessage() {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let timeString = dateFormatter.string(from: timestamp)
+        
+        // 对阵信息（包含比分）
+        let teamAInfo = "\(teamA.player1) & \(teamA.player2) [\(teamA.currentLevel.rawValue)\(teamA.isDealer ? "(庄)" : "")]"
+        let teamBInfo = "\(teamB.player1) & \(teamB.player2) [\(teamB.currentLevel.rawValue)\(teamB.isDealer ? "(庄)" : "")]"
+        
+        // 操作信息
+        var actionInfo = ""
+        switch actionType {
+        case .doubleContribute:
+            actionInfo = "\(actingTeamName) 双贡 \(level.rawValue)"
+        case .singleContribute:
+            actionInfo = "\(actingTeamName) 单贡 \(level.rawValue)"
+        case .selfContribute:
+            actionInfo = "\(actingTeamName) 自贡 \(level.rawValue)"
+        case .win:
+            actionInfo = "\(actingTeamName) 获胜"
+        }
+        
+        // 详细比分信息
+        let teamALevel = teamA.currentLevel.rawValue
+        let teamBLevel = teamB.currentLevel.rawValue
+        let dealerMark = teamA.isDealer ? "A队庄" : "B队庄"
+        let scoreInfo = "比分：A队[\(teamALevel)] vs B队[\(teamBLevel)] | \(dealerMark)"
+        
+        // 结果信息
+        var resultInfo = ""
+        if let winner = self.winner {
+            let winnerTeam = winner.id == teamA.id ? "A队" : "B队"
+            let loserTeam = winner.id == teamA.id ? "B队" : "A队"
+            let winnerLevel = winner.id == teamA.id ? teamA.currentLevel.rawValue : teamB.currentLevel.rawValue
+            let loserLevel = winner.id == teamA.id ? teamB.currentLevel.rawValue : teamA.currentLevel.rawValue
+            resultInfo = "游戏结束，\(winnerTeam)(\(winner.displayName)) \(winnerLevel) : \(loserLevel) \(loserTeam) 获胜！"
+        }
+        
+        // 组合日志信息
+        logMessage = "[\(timeString)] \(teamAInfo) VS \(teamBInfo) | \(actionInfo) | \(scoreInfo) | \(resultInfo)"
+    }
 }
 
 // 新游戏设置
@@ -173,7 +207,7 @@ struct NewGameSetup {
 
 // 对局
 struct Game: Codable, Identifiable, Hashable, Equatable {
-    let id = UUID()
+    var id = UUID()
     var teamA: TeamStatus
     var teamB: TeamStatus
     var rounds: [Round] = []
@@ -181,34 +215,62 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
     var endTime: Date?
     var isCompleted: Bool = false
     
-    // 指定需要编码/解码的属性
-    private enum CodingKeys: String, CodingKey {
-        case teamA, teamB, rounds, startTime, endTime, isCompleted
-    }
-    
     // 当前回合
     var currentRound: Round? {
         rounds.last
     }
     
     // 双贡操作 - A队双下，B队升3级
-    mutating func doubleContribution(fromTeam: inout TeamStatus, toTeam: inout TeamStatus) {
-        // 根据规则，对方双贡，本方升3级，但最多只能升到A1
-        let newLevel = toTeam.currentLevel.limitedLevelUp(by: 3)
-        toTeam.currentLevel = newLevel
+    mutating func doubleContribution(fromTeamId: UUID) {
+        // 确定操作的队伍
+        var fromTeam: TeamStatus
+        var toTeam: TeamStatus
         
-        // 只有当前庄家没有取胜时，才会转换庄家
-        if fromTeam.isDealer {
-            toTeam.isDealer = true
-            fromTeam.isDealer = false
+        if fromTeamId == teamA.id {
+            fromTeam = teamA
+            toTeam = teamB
+        } else {
+            fromTeam = teamB
+            toTeam = teamA
         }
         
-        // 如果对方是A级别且是庄家，则本方获胜
-        if fromTeam.isDealer && toTeam.currentLevel.isALevel {
+        NSLog("🎯 [双贡开始] fromTeam: \(fromTeam.player1)&\(fromTeam.player2)(\(fromTeam.currentLevel.rawValue)), toTeam: \(toTeam.player1)&\(toTeam.player2)(\(toTeam.currentLevel.rawValue))")
+        NSLog("🎯 [双贡前庄家] fromTeam.isDealer: \(fromTeam.isDealer), toTeam.isDealer: \(toTeam.isDealer)")
+        
+        let oldLevel = toTeam.currentLevel
+        
+        // 根据新规则：如果对方当前是A1~A3，对方获得本局的最终胜利
+        if toTeam.currentLevel.isALevel {
             toTeam.isWinner = true
             isCompleted = true
             endTime = Date()
+            NSLog("🎯 [双贡胜利] \(toTeam.player1)&\(toTeam.player2) 在A级别时接受双贡，直接获胜")
+        } else {
+            // 如果对方当前是2~K，对方升3级，最多升级到A1
+            let newLevel = toTeam.currentLevel.limitedLevelUp(by: 3)
+            toTeam.currentLevel = newLevel
+            NSLog("🎯 [双贡升级] \(toTeam.player1)&\(toTeam.player2): \(oldLevel.rawValue) -> \(newLevel.rawValue)")
+            
+            // 转换庄家到受贡方
+            if fromTeam.isDealer {
+                toTeam.isDealer = true
+                fromTeam.isDealer = false
+                NSLog("🎯 [双贡庄家转换] 庄家从 \(fromTeam.player1)&\(fromTeam.player2) 转到 \(toTeam.player1)&\(toTeam.player2)")
+            }
         }
+        
+        // 更新游戏中的队伍状态
+        NSLog("🎯 [双贡前游戏状态] teamA: \(teamA.player1)&\(teamA.player2)(\(teamA.currentLevel.rawValue)), teamB: \(teamB.player1)&\(teamB.player2)(\(teamB.currentLevel.rawValue))")
+        if fromTeamId == teamA.id {
+            teamA = fromTeam
+            teamB = toTeam
+            NSLog("🎯 [双贡更新游戏] teamA=fromTeam, teamB=toTeam")
+        } else {
+            teamA = toTeam
+            teamB = fromTeam
+            NSLog("🎯 [双贡更新游戏] teamA=toTeam, teamB=fromTeam")
+        }
+        NSLog("🎯 [双贡后游戏状态] teamA: \(teamA.player1)&\(teamA.player2)(\(teamA.currentLevel.rawValue)), teamB: \(teamB.player1)&\(teamB.player2)(\(teamB.currentLevel.rawValue))")
         
         // 记录回合
         var newRound = Round(teamA: teamA, teamB: teamB)
@@ -217,35 +279,54 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
         newRound.level = toTeam.currentLevel
         newRound.dealerTeamId = toTeam.id // 双贡后对方打庄
         
-        // 更新队伍状态
-        if fromTeam.id == teamA.id {
-            newRound.teamA = fromTeam
-            newRound.teamB = toTeam
-        } else {
-            newRound.teamA = toTeam
-            newRound.teamB = fromTeam
-        }
+        // 生成日志信息
+        newRound.generateLogMessage()
+        NSLog("回合日志: \(newRound.logMessage)")
+        GameLogger.shared.writeLog(newRound.logMessage)
         
         rounds.append(newRound)
     }
     
-    // 单贡操作 - 一方单下，另一方升2级
+    // 单贡操作 - 一方单下，另一方升级
     mutating func singleContribution(fromTeam: inout TeamStatus, toTeam: inout TeamStatus) {
-        // 根据规则，对方单贡，本方升2级，但最多只能升到A1
-        let newLevel = toTeam.currentLevel.limitedLevelUp(by: 2)
-        toTeam.currentLevel = newLevel
+        let oldLevel = toTeam.currentLevel
         
-        // 只有当前庄家没有取胜时，才会转换庄家
-        if fromTeam.isDealer {
-            toTeam.isDealer = true
-            fromTeam.isDealer = false
-        }
-        
-        // 如果对方是A级别且是庄家，则本方获胜
-        if fromTeam.isDealer && toTeam.currentLevel.isALevel {
+        // 根据新规则处理不同情况
+        if toTeam.currentLevel.isALevel {
+            // 如果对方当前是A1~A3，对方获得本局的胜利，结束本局
             toTeam.isWinner = true
             isCompleted = true
             endTime = Date()
+            NSLog("🎯 [单贡胜利] \(toTeam.player1)&\(toTeam.player2) 在A级别时接受单贡，直接获胜")
+        } else {
+            // 如果对方当前是2~K，对方升2级，最多升级到A1
+            let newLevel = toTeam.currentLevel.limitedLevelUp(by: 2)
+            toTeam.currentLevel = newLevel
+            NSLog("🎯 [单贡升级] \(toTeam.player1)&\(toTeam.player2): \(oldLevel.rawValue) -> \(newLevel.rawValue)")
+            
+            // 转换庄家到受贡方
+            if fromTeam.isDealer {
+                toTeam.isDealer = true
+                fromTeam.isDealer = false
+            }
+        }
+        
+        // 更新游戏中的队伍状态
+        if fromTeam.id == teamA.id {
+            teamA = fromTeam
+            teamB = toTeam
+        } else {
+            teamA = toTeam
+            teamB = fromTeam
+        }
+        
+        // 确保inout参数与游戏状态同步
+        if fromTeam.id == teamA.id {
+            fromTeam = teamA
+            toTeam = teamB
+        } else {
+            fromTeam = teamB
+            toTeam = teamA
         }
         
         // 记录回合
@@ -255,22 +336,18 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
         newRound.level = toTeam.currentLevel
         newRound.dealerTeamId = toTeam.id // 单贡后对方打庄
         
-        // 更新队伍状态
-        if fromTeam.id == teamA.id {
-            newRound.teamA = fromTeam
-            newRound.teamB = toTeam
-        } else {
-            newRound.teamA = toTeam
-            newRound.teamB = fromTeam
-        }
+        // 生成日志信息
+        newRound.generateLogMessage()
+        NSLog("回合日志: \(newRound.logMessage)")
+        GameLogger.shared.writeLog(newRound.logMessage)
         
         rounds.append(newRound)
     }
     
     // 自贡操作 - 升1级
     mutating func selfContribution(team: inout TeamStatus) {
-        // 如果当前是A3级别且是庄家，则失败，对方获胜
-        if team.currentLevel == .aceThree && team.isDealer {
+        // 根据新规则：如果本队当前是A3，本队3次A不过，本队本局失败，对方获得本局的胜利
+        if team.currentLevel == .aceThree {
             // 找到对方
             var opposingTeam: TeamStatus
             if team.id == teamA.id {
@@ -291,15 +368,43 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             newRound.actingTeamName = "\(team.player1) & \(team.player2)"
             newRound.level = team.currentLevel
             newRound.dealerTeamId = team.id // 自贡后自己还是庄家
+            // 生成日志信息
+            newRound.generateLogMessage()
+            NSLog("回合日志: \(newRound.logMessage)")
+            GameLogger.shared.writeLog(newRound.logMessage)
+            
             rounds.append(newRound)
             return
         }
         
-        // 如果是A1或A2级别，可以继续升级
-        // 如果是其他级别，正常升1级
+        // 根据新规则：如果本队当前是2~A2，本队升1级，还是本队打庄
+        // (即除了A3的所有情况)
         if let newLevel = team.currentLevel.nextLevel() {
             team.currentLevel = newLevel
-            // 自贡不改变庄家
+            
+            // 自贡后，自贡方应该是庄家
+            if !team.isDealer {
+                // 如果自贡方不是庄家，需要转换庄家
+                team.isDealer = true
+                
+                // 对方失去庄家身份
+                if team.id == teamA.id {
+                    teamB.isDealer = false
+                } else {
+                    teamA.isDealer = false
+                }
+            }
+            
+            // 更新游戏中的队伍状态
+            if team.id == teamA.id {
+                teamA = team
+                // 确保inout参数与游戏状态同步
+                team = teamA
+            } else {
+                teamB = team
+                // 确保inout参数与游戏状态同步  
+                team = teamB
+            }
             
             var newRound = Round(teamA: teamA, teamB: teamB)
             newRound.actionType = .selfContribute
@@ -307,14 +412,10 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             newRound.level = team.currentLevel
             newRound.dealerTeamId = team.id // 自贡后自己还是庄家
             
-            // 更新队伍状态
-            if team.id == teamA.id {
-                newRound.teamA = team
-                newRound.teamB = teamB
-            } else {
-                newRound.teamA = teamA
-                newRound.teamB = team
-            }
+            // 生成日志信息
+            newRound.generateLogMessage()
+            NSLog("回合日志: \(newRound.logMessage)")
+            GameLogger.shared.writeLog(newRound.logMessage)
             
             rounds.append(newRound)
         }
@@ -340,6 +441,11 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             finalRound.actingTeamName = "\(team.player1) & \(team.player2)"
             finalRound.level = team.currentLevel
             finalRound.dealerTeamId = team.id // 获胜方应该是庄家
+            // 生成日志信息
+            finalRound.generateLogMessage()
+            NSLog("回合日志: \(finalRound.logMessage)")
+            GameLogger.shared.writeLog(finalRound.logMessage)
+            
             rounds.append(finalRound)
         }
     }
@@ -373,25 +479,35 @@ class GameManager: ObservableObject {
             startTime: Date()
         )
         
-        // 创建初始回合记录
-        var initialGame = newGame
-        let initialRound = Round(teamA: teamA, teamB: teamB)
-        initialGame.rounds = [initialRound]
-        
-        games.append(initialGame)
-        currentGame = initialGame
+        // 不创建初始回合记录，让游戏从空白状态开始
+        games.append(newGame)
+        currentGame = newGame
         historyIndex = 0 // 重置历史索引
         saveGames()
-        return initialGame
+        NSLog("🔍 创建新游戏: \(teamA.player1) & \(teamA.player2) vs \(teamB.player1) & \(teamB.player2)")
+        return newGame
     }
     
     // 更新当前游戏
     func updateCurrentGame(game: Game) {
+        NSLog("💾 [GameManager-更新游戏] 开始更新游戏 ID: \(game.id)")
+        NSLog("💾 [GameManager-更新前] teamA: \(game.teamA.currentLevel.rawValue), teamB: \(game.teamB.currentLevel.rawValue)")
+        
         if let index = games.firstIndex(where: { $0.id == game.id }) {
+            NSLog("💾 [GameManager-找到游戏] 在索引 \(index)")
+            NSLog("💾 [GameManager-旧游戏状态] teamA: \(games[index].teamA.currentLevel.rawValue), teamB: \(games[index].teamB.currentLevel.rawValue)")
+            
             games[index] = game
             currentGame = game
             historyIndex = 0 // 重置历史索引
+            
+            NSLog("💾 [GameManager-更新后] teamA: \(games[index].teamA.currentLevel.rawValue), teamB: \(games[index].teamB.currentLevel.rawValue)")
+            NSLog("💾 [GameManager-currentGame] teamA: \(currentGame?.teamA.currentLevel.rawValue ?? "nil"), teamB: \(currentGame?.teamB.currentLevel.rawValue ?? "nil")")
+            
             saveGames()
+            NSLog("💾 [GameManager-保存完成]")
+        } else {
+            NSLog("💾 [GameManager-错误] 未找到游戏 ID: \(game.id)")
         }
     }
     
@@ -470,22 +586,130 @@ class GameManager: ObservableObject {
     
     // 存储游戏
     func saveGames() {
-        // 这里使用UserDefaults临时存储数据
-        if let encoded = try? JSONEncoder().encode(games) {
-            UserDefaults.standard.set(encoded, forKey: "SavedGames")
+        // 使用JSON文件存储替代UserDefaults
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            NSLog("无法获取文档目录")
+            return
+        }
+        
+        let gameDataURL = documentsDirectory.appendingPathComponent("games.json")
+        
+        do {
+            let encoded = try JSONEncoder().encode(games)
+            try encoded.write(to: gameDataURL)
+            NSLog("游戏数据已保存到: \(gameDataURL.path)")
+        } catch {
+            NSLog("保存游戏数据失败: \(error)")
         }
     }
     
     // 加载游戏
     func loadGames() {
-        if let savedGames = UserDefaults.standard.data(forKey: "SavedGames") {
-            if let decodedGames = try? JSONDecoder().decode([Game].self, from: savedGames) {
-                games = decodedGames
-            }
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            NSLog("无法获取文档目录")
+            return
+        }
+        
+        let gameDataURL = documentsDirectory.appendingPathComponent("games.json")
+        NSLog("尝试从以下路径加载游戏数据: \(gameDataURL.path)")
+        
+        // 检查文件是否存在
+        guard fileManager.fileExists(atPath: gameDataURL.path) else {
+            NSLog("游戏数据文件不存在，使用空数据")
+            NSLog("当前games数组大小: \(games.count)")
+            return
+        }
+        
+        do {
+            let data = try Data(contentsOf: gameDataURL)
+            let decodedGames = try JSONDecoder().decode([Game].self, from: data)
+            games = decodedGames
+            NSLog("已加载 \(games.count) 个游戏记录")
+        } catch {
+            NSLog("加载游戏数据失败: \(error)")
+            NSLog("当前games数组大小: \(games.count)")
+        }
+    }
+    
+    // 清除所有数据
+    func clearAllData() {
+        // 清除内存中的数据
+        games = []
+        currentGame = nil
+        newGameSetup = nil
+        historyIndex = 0
+        
+        // 清除文件中的数据
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            NSLog("无法获取文档目录")
+            return
+        }
+        
+        let gameDataURL = documentsDirectory.appendingPathComponent("games.json")
+        
+        // 删除文件
+        do {
+            try fileManager.removeItem(at: gameDataURL)
+        } catch {
+            NSLog("删除游戏数据文件失败: \(error)")
+        }
+        
+        // 清除日志文件
+        GameLogger.shared.clearLogFile()
+        
+        NSLog("所有数据已清除")
+    }
+    
+    // 清除当前游戏的所有回合数据
+    func clearCurrentGameRounds() {
+        guard let currentGame = currentGame else { return }
+        
+        // 找到当前游戏在数组中的索引
+        if let gameIndex = games.firstIndex(where: { $0.id == currentGame.id }) {
+            // 清除回合数据，重置队伍状态
+            var clearedGame = games[gameIndex]
+            clearedGame.rounds = []
+            
+            // 重置队伍级别和状态
+            clearedGame.teamA.currentLevel = .two
+            clearedGame.teamB.currentLevel = .two
+            clearedGame.teamA.isWinner = false
+            clearedGame.teamB.isWinner = false
+            clearedGame.isCompleted = false
+            
+            // 更新游戏数组和当前游戏
+            games[gameIndex] = clearedGame
+            self.currentGame = clearedGame
+            historyIndex = 0
+            
+            saveGames()
+            NSLog("🔍 已清除游戏回合数据: \(clearedGame.teamA.player1) & \(clearedGame.teamA.player2) vs \(clearedGame.teamB.player1) & \(clearedGame.teamB.player2)")
         }
     }
     
     init() {
+        NSLog("🔍 GameManager初始化开始")
+        
+        // 测试文件系统访问
+        let fileManager = FileManager.default
+        if let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            NSLog("🔍 Documents目录: \(documentsDirectory.path)")
+        } else {
+            NSLog("🔍 无法获取Documents目录")
+        }
+        
         loadGames()
+        NSLog("🔍 GameManager初始化完成，games数量: \(games.count)")
+        if !games.isEmpty {
+            NSLog("🔍 现有游戏:")
+            for (index, game) in games.enumerated() {
+                NSLog("  游戏\(index + 1): \(game.teamA.player1) & \(game.teamA.player2) vs \(game.teamB.player1) & \(game.teamB.player2)")
+            }
+        } else {
+            NSLog("🔍 没有现有游戏")
+        }
     }
 }

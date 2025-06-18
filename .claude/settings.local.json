@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(xcodebuild:*)",
+      "Bash(rg:*)",
+      "Bash(xcrun simctl boot:*)",
+      "Bash(swift test)",
+      "Bash(open:*)",
+      "Bash(xcrun simctl install:*)",
+      "Bash(xcrun simctl launch:*)",
+      "Bash(grep:*)",
+      "Bash(xcrun simctl spawn:*)",
+      "Bash(swift:*)",
+      "Bash(timeout 10 xcrun simctl spawn booted log stream:*)",
+      "Bash(ls:*)"
+    ],
+    "deny": []
+  }
+}

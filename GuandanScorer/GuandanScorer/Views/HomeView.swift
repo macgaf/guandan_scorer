@@ -23,7 +23,20 @@ struct HomeView: View {
                     GameRowView(game: game)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            gameManager.currentGame = game
+                            // 记录游戏选择事件
+                            GameLogger.shared.logInputEvent(
+                                type: .tap,
+                                target: "游戏列表项",
+                                details: "选择游戏: \(game.teamA.player1) & \(game.teamA.player2) vs \(game.teamB.player1) & \(game.teamB.player2)"
+                            )
+                            
+                            // 先清除currentGame，然后设置新的游戏，确保onChange被触发
+                            DispatchQueue.main.async {
+                                gameManager.currentGame = nil
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                                    gameManager.currentGame = game
+                                }
+                            }
                         }
                         .swipeActions(edge: .trailing) {
                             // 删除按钮
@@ -50,6 +63,13 @@ struct HomeView: View {
             
             // 来一局按钮
             Button(action: {
+                // 记录新建游戏按钮点击
+                GameLogger.shared.logInputEvent(
+                    type: .tap,
+                    target: "来一局按钮",
+                    details: "点击新建游戏"
+                )
+                
                 showNewGameSheet = true
             }) {
                 Text("来一局")
@@ -63,6 +83,14 @@ struct HomeView: View {
             .padding()
         }
         .navigationTitle("惯蛋记分器")
+        .onAppear {
+            // 记录主界面初始化
+            GameLogger.shared.logInputEvent(
+                type: .tap,
+                target: "HomeView界面",
+                details: "界面初始化 - 游戏列表 (\(gameManager.games.count) 个游戏)"
+            )
+        }
         .sheet(isPresented: $showNewGameSheet) {
             NewGameView(
                 teamAPlayer1: gameManager.newGameSetup?.teamAPlayer1 ?? "",
@@ -77,7 +105,6 @@ struct HomeView: View {
 struct GameRowView: View {
     let game: Game
     @EnvironmentObject var gameManager: GameManager
-    @State private var showNewGameSheet = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -110,9 +137,16 @@ struct GameRowView: View {
                                 .foregroundColor(.green)
                         }
                         
-                        if let lastRound = game.rounds.last, lastRound.dealerTeamId == game.teamA.id {
-                            Image(systemName: "star.fill")
-                                .foregroundColor(.yellow)
+                        if game.teamA.isDealer {
+                            HStack(spacing: 2) {
+                                Image(systemName: "star.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption2)
+                                Text("庄")
+                                    .foregroundColor(.orange)
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                            }
                         }
                     }
                 }
@@ -121,9 +155,16 @@ struct GameRowView: View {
                 
                 VStack(alignment: .trailing) {
                     HStack {
-                        if let lastRound = game.rounds.last, lastRound.dealerTeamId == game.teamB.id {
-                            Image(systemName: "star.fill")
-                                .foregroundColor(.yellow)
+                        if game.teamB.isDealer {
+                            HStack(spacing: 2) {
+                                Image(systemName: "star.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption2)
+                                Text("庄")
+                                    .foregroundColor(.orange)
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                            }
                         }
                         
                         if game.teamB.isWinner {
@@ -136,26 +177,6 @@ struct GameRowView: View {
                             .bold()
                     }
                 }
-            }
-            
-            // 再来一局按钮
-            Button(action: {
-                showNewGameSheet = true
-            }) {
-                Text("再来一局")
-                    .font(.caption)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color.blue.opacity(0.2))
-                    .cornerRadius(5)
-            }
-            .sheet(isPresented: $showNewGameSheet) {
-                NewGameView(
-                    teamAPlayer1: game.teamA.player1,
-                    teamAPlayer2: game.teamA.player2,
-                    teamBPlayer1: game.teamB.player1,
-                    teamBPlayer2: game.teamB.player2
-                )
             }
         }
         .padding()

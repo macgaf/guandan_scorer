@@ -24,7 +24,13 @@ struct NewGameView: View {
                 // A队信息
                 Section(header: Text("A组")) {
                     TextField("队员1姓名", text: $teamAPlayer1)
+                        .onChange(of: teamAPlayer1) { _, newValue in
+                            GameLogger.shared.logTextInput(field: "A组队员1", text: newValue)
+                        }
                     TextField("队员2姓名", text: $teamAPlayer2)
+                        .onChange(of: teamAPlayer2) { _, newValue in
+                            GameLogger.shared.logTextInput(field: "A组队员2", text: newValue)
+                        }
                     
                     Toggle("A队为庄家", isOn: $teamAIsDealer)
                 }
@@ -32,7 +38,13 @@ struct NewGameView: View {
                 // B队信息
                 Section(header: Text("B组")) {
                     TextField("队员1姓名", text: $teamBPlayer1)
+                        .onChange(of: teamBPlayer1) { _, newValue in
+                            GameLogger.shared.logTextInput(field: "B组队员1", text: newValue)
+                        }
                     TextField("队员2姓名", text: $teamBPlayer2)
+                        .onChange(of: teamBPlayer2) { _, newValue in
+                            GameLogger.shared.logTextInput(field: "B组队员2", text: newValue)
+                        }
                     
                     Toggle("B队为庄家", isOn: Binding(
                         get: { !teamAIsDealer },
@@ -43,6 +55,13 @@ struct NewGameView: View {
                 // 操作按钮
                 Section {
                     Button("开始对局") {
+                        // 记录开始游戏按钮点击
+                        GameLogger.shared.logInputEvent(
+                            type: .tap,
+                            target: "开始对局按钮",
+                            details: "创建新游戏: A队(\(teamAPlayer1) & \(teamAPlayer2)) vs B队(\(teamBPlayer1) & \(teamBPlayer2))"
+                        )
+                        
                         createNewGame()
                     }
                     .disabled(!isFormValid)
@@ -53,9 +72,24 @@ struct NewGameView: View {
             .navigationTitle("新建对局")
             .navigationBarItems(
                 leading: Button("取消") {
+                    // 记录取消按钮点击
+                    GameLogger.shared.logInputEvent(
+                        type: .tap,
+                        target: "取消按钮",
+                        details: "取消创建新游戏"
+                    )
+                    
                     dismiss()
                 }
             )
+            .onAppear {
+                // 记录新建游戏界面初始化
+                GameLogger.shared.logInputEvent(
+                    type: .tap,
+                    target: "NewGameView界面",
+                    details: "界面初始化 - 新建游戏"
+                )
+            }
         }
     }
     
@@ -82,13 +116,7 @@ struct NewGameView: View {
         )
         
         let newGame = gameManager.createNewGame(teamA: teamA, teamB: teamB)
-        
-        // 初始回合
-        let initialRound = Round(teamA: teamA, teamB: teamB, timestamp: Date())
-        var game = newGame
-        game.rounds.append(initialRound)
-        
-        gameManager.currentGame = game
+        gameManager.currentGame = newGame
         dismiss()
     }
 }
