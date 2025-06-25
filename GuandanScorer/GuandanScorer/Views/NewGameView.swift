@@ -3,6 +3,7 @@ import SwiftUI
 struct NewGameView: View {
     @EnvironmentObject var gameManager: GameManager
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     @State private var teamAPlayer1: String
     @State private var teamAPlayer2: String
@@ -21,46 +22,130 @@ struct NewGameView: View {
     var body: some View {
         NavigationView {
             Form {
-                // A队信息
-                Section(header: Text("A组")) {
+                // 根据屏幕大小调整布局
+                if horizontalSizeClass == .regular {
+                    // iPad横屏：使用水平布局
+                    HStack(spacing: 40) {
+                        // A队信息
+                        VStack {
+                            Text("A组")
+                                .font(.headline)
+                                .padding(.bottom)
+                            
+                            VStack(spacing: 12) {
+                                TextField("队员1姓名", text: $teamAPlayer1)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(minHeight: 44)
+                                    .onChange(of: teamAPlayer1) { _, newValue in
+                                        OSLogger.logTextInput("文本输入: 字段'A组队员1' - 内容: '\(newValue)'")
+                                    }
+                                
+                                TextField("队员2姓名", text: $teamAPlayer2)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(minHeight: 44)
+                                    .onChange(of: teamAPlayer2) { _, newValue in
+                                        OSLogger.logTextInput("文本输入: 字段'A组队员2' - 内容: '\(newValue)'")
+                                    }
+                                
+                                Toggle("A队为庄家", isOn: Binding(
+                                    get: { teamAIsDealer },
+                                    set: { 
+                                        let newADealerState = $0
+                                        teamAIsDealer = newADealerState
+                                        OSLogger.logInputEvent("点击 - 目标: A队庄家开关 - 详情: A队庄家状态: \(newADealerState), B队庄家状态: \(!newADealerState)")
+                                    }
+                                ))
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        
+                        Divider()
+                        
+                        // B队信息
+                        VStack {
+                            Text("B组")
+                                .font(.headline)
+                                .padding(.bottom)
+                            
+                            VStack(spacing: 12) {
+                                TextField("队员1姓名", text: $teamBPlayer1)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(minHeight: 44)
+                                    .onChange(of: teamBPlayer1) { _, newValue in
+                                        OSLogger.logTextInput("文本输入: 字段'B组队员1' - 内容: '\(newValue)'")
+                                    }
+                                
+                                TextField("队员2姓名", text: $teamBPlayer2)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .frame(minHeight: 44)
+                                    .onChange(of: teamBPlayer2) { _, newValue in
+                                        OSLogger.logTextInput("文本输入: 字段'B组队员2' - 内容: '\(newValue)'")
+                                    }
+                                
+                                Toggle("B队为庄家", isOn: Binding(
+                                    get: { !teamAIsDealer },
+                                    set: { 
+                                        let newBDealerState = $0
+                                        teamAIsDealer = !newBDealerState
+                                        OSLogger.logInputEvent("点击 - 目标: B队庄家开关 - 详情: B队庄家状态: \(newBDealerState), A队庄家状态: \(!newBDealerState)")
+                                    }
+                                ))
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding()
+                    
+                } else {
+                    // iPhone：使用垂直布局
+                    // A队信息
+                    Section(header: Text("A组")) {
                     TextField("队员1姓名", text: $teamAPlayer1)
                         .onChange(of: teamAPlayer1) { _, newValue in
-                            GameLogger.shared.logTextInput(field: "A组队员1", text: newValue)
+                            OSLogger.logTextInput("文本输入: 字段'A组队员1' - 内容: '\(newValue)'")
                         }
                     TextField("队员2姓名", text: $teamAPlayer2)
                         .onChange(of: teamAPlayer2) { _, newValue in
-                            GameLogger.shared.logTextInput(field: "A组队员2", text: newValue)
+                            OSLogger.logTextInput("文本输入: 字段'A组队员2' - 内容: '\(newValue)'")
                         }
                     
-                    Toggle("A队为庄家", isOn: $teamAIsDealer)
-                }
-                
-                // B队信息
-                Section(header: Text("B组")) {
-                    TextField("队员1姓名", text: $teamBPlayer1)
-                        .onChange(of: teamBPlayer1) { _, newValue in
-                            GameLogger.shared.logTextInput(field: "B组队员1", text: newValue)
+                    Toggle("A队为庄家", isOn: Binding(
+                        get: { teamAIsDealer },
+                        set: { 
+                            let newADealerState = $0
+                            teamAIsDealer = newADealerState
+                            OSLogger.logInputEvent("点击 - 目标: A队庄家开关 - 详情: A队庄家状态: \(newADealerState), B队庄家状态: \(!newADealerState)")
                         }
-                    TextField("队员2姓名", text: $teamBPlayer2)
-                        .onChange(of: teamBPlayer2) { _, newValue in
-                            GameLogger.shared.logTextInput(field: "B组队员2", text: newValue)
-                        }
-                    
-                    Toggle("B队为庄家", isOn: Binding(
-                        get: { !teamAIsDealer },
-                        set: { teamAIsDealer = !$0 }
                     ))
+                    }
+                    
+                    // B队信息
+                    Section(header: Text("B组")) {
+                        TextField("队员1姓名", text: $teamBPlayer1)
+                            .onChange(of: teamBPlayer1) { _, newValue in
+                                OSLogger.logTextInput("文本输入: 字段'B组队员1' - 内容: '\(newValue)'")
+                            }
+                        TextField("队员2姓名", text: $teamBPlayer2)
+                            .onChange(of: teamBPlayer2) { _, newValue in
+                                OSLogger.logTextInput("文本输入: 字段'B组队员2' - 内容: '\(newValue)'")
+                            }
+                        
+                        Toggle("B队为庄家", isOn: Binding(
+                            get: { !teamAIsDealer },
+                            set: { 
+                                let newBDealerState = $0
+                                teamAIsDealer = !newBDealerState
+                                OSLogger.logInputEvent("点击 - 目标: B队庄家开关 - 详情: B队庄家状态: \(newBDealerState), A队庄家状态: \(!newBDealerState)")
+                            }
+                        ))
+                    }
                 }
                 
                 // 操作按钮
                 Section {
                     Button("开始对局") {
                         // 记录开始游戏按钮点击
-                        GameLogger.shared.logInputEvent(
-                            type: .tap,
-                            target: "开始对局按钮",
-                            details: "创建新游戏: A队(\(teamAPlayer1) & \(teamAPlayer2)) vs B队(\(teamBPlayer1) & \(teamBPlayer2))"
-                        )
+                        OSLogger.logInputEvent("点击 - 目标: 开始对局按钮 - 详情: 创建新游戏: A队(\(teamAPlayer1) & \(teamAPlayer2)) vs B队(\(teamBPlayer1) & \(teamBPlayer2))")
                         
                         createNewGame()
                     }
@@ -73,22 +158,14 @@ struct NewGameView: View {
             .navigationBarItems(
                 leading: Button("取消") {
                     // 记录取消按钮点击
-                    GameLogger.shared.logInputEvent(
-                        type: .tap,
-                        target: "取消按钮",
-                        details: "取消创建新游戏"
-                    )
+                    OSLogger.logInputEvent("点击 - 目标: 取消按钮 - 详情: 取消创建新游戏")
                     
                     dismiss()
                 }
             )
             .onAppear {
                 // 记录新建游戏界面初始化
-                GameLogger.shared.logInputEvent(
-                    type: .tap,
-                    target: "NewGameView界面",
-                    details: "界面初始化 - 新建游戏"
-                )
+                OSLogger.logInputEvent("点击 - 目标: NewGameView界面 - 详情: 界面初始化 - 新建游戏")
             }
         }
     }

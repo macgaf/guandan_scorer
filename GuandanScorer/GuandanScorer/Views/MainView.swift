@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 struct MainView: View {
     @EnvironmentObject var gameManager: GameManager
@@ -50,10 +51,10 @@ struct MainView: View {
                 path = NavigationPath()
                 path.append(game)
                 
-                NSLog("📱 [MainView] 导航到游戏: \(game.teamA.player1) & \(game.teamA.player2) vs \(game.teamB.player1) & \(game.teamB.player2)")
+                OSLogger.logUIAction("[MainView] 导航到游戏: \(game.teamA.player1) & \(game.teamA.player2) vs \(game.teamB.player1) & \(game.teamB.player2)")
             } else if oldGame != nil {
                 // 当currentGame被设置为nil时，确保清空导航栈
-                NSLog("📱 [MainView] 清空currentGame，准备新导航")
+                OSLogger.logUIAction("[MainView] 清空currentGame，准备新导航")
             }
         }
         // 使用系统默认的颜色方案

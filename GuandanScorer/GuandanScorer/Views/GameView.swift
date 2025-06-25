@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 struct GameView: View {
     @EnvironmentObject var gameManager: GameManager
@@ -24,11 +25,7 @@ struct GameView: View {
                     .background(displayedGame.teamA.isDealer ? Color.orange.opacity(0.15) : Color.clear)
                     .onTapGesture {
                         // 记录点击事件
-                        GameLogger.shared.logInputEvent(
-                            type: .tap,
-                            target: "A队(\(displayedGame.teamA.player1) & \(displayedGame.teamA.player2))",
-                            details: "当前级别: \(displayedGame.teamA.currentLevel.rawValue)"
-                        )
+                        OSLogger.logInputEvent("点击 - 目标: A队(\(displayedGame.teamA.player1) & \(displayedGame.teamA.player2)) - 详情: 当前级别: \(displayedGame.teamA.currentLevel.rawValue)")
                         
                         // 只有当没有回退且本局没有出现获胜方时才允许操作
                         if historyIndex == 0 && !game.isCompleted {
@@ -49,7 +46,7 @@ struct GameView: View {
                                 gameManager.updateCurrentGame(game: game)
                                 
                                 // 确保UI更新
-                                NSLog("📱 [视图-操作完成后] displayedGame.teamA: \(displayedGame.teamA.currentLevel.rawValue), displayedGame.teamB: \(displayedGame.teamB.currentLevel.rawValue)")
+                                OSLogger.logUIAction("[视图-操作完成后] displayedGame.teamA: \(displayedGame.teamA.currentLevel.rawValue), displayedGame.teamB: \(displayedGame.teamB.currentLevel.rawValue)")
                             }
                         )
                     }
@@ -57,7 +54,7 @@ struct GameView: View {
                 // 分隔线
                 Rectangle()
                     .frame(width: 2, height: 100)
-                    .foregroundColor(.gray.opacity(0.5))
+                    .foregroundColor(.secondary.opacity(0.5))
                 
                 // B队信息
                 TeamScoreView(team: $displayedGame.teamB, game: displayedGame)
@@ -65,11 +62,7 @@ struct GameView: View {
                     .background(displayedGame.teamB.isDealer ? Color.orange.opacity(0.15) : Color.clear)
                     .onTapGesture {
                         // 记录点击事件
-                        GameLogger.shared.logInputEvent(
-                            type: .tap,
-                            target: "B队(\(displayedGame.teamB.player1) & \(displayedGame.teamB.player2))",
-                            details: "当前级别: \(displayedGame.teamB.currentLevel.rawValue)"
-                        )
+                        OSLogger.logInputEvent("点击 - 目标: B队(\(displayedGame.teamB.player1) & \(displayedGame.teamB.player2)) - 详情: 当前级别: \(displayedGame.teamB.currentLevel.rawValue)")
                         
                         // 只有当没有回退且本局没有出现获胜方时才允许操作
                         if historyIndex == 0 && !game.isCompleted {
@@ -90,7 +83,7 @@ struct GameView: View {
                                 gameManager.updateCurrentGame(game: game)
                                 
                                 // 确保UI更新
-                                NSLog("📱 [视图-操作完成后] displayedGame.teamA: \(displayedGame.teamA.currentLevel.rawValue), displayedGame.teamB: \(displayedGame.teamB.currentLevel.rawValue)")
+                                OSLogger.logUIAction("[视图-操作完成后] displayedGame.teamA: \(displayedGame.teamA.currentLevel.rawValue), displayedGame.teamB: \(displayedGame.teamB.currentLevel.rawValue)")
                             }
                         )
                     }
@@ -133,13 +126,9 @@ struct GameView: View {
                 // 回退按钮
                 Button(action: {
                     // 记录按钮点击事件
-                    GameLogger.shared.logInputEvent(
-                        type: .tap,
-                        target: "回退按钮",
-                        details: "当前历史索引: \(historyIndex)"
-                    )
+                    OSLogger.logInputEvent("点击 - 目标: 回退按钮 - 详情: 当前历史索引: \(historyIndex)")
                     
-                    if historyIndex < game.rounds.count - 1 {
+                    if historyIndex < game.rounds.count {
                         historyIndex += 1
                         // 更新显示的游戏状态
                         updateDisplayedGame()
@@ -152,20 +141,16 @@ struct GameView: View {
                             .font(.headline)
                     }
                     .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.blue.opacity(0.2)))
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.accentColor.opacity(0.2)))
                 }
-                .disabled(historyIndex >= game.rounds.count - 1)
+                .disabled(historyIndex >= game.rounds.count)
                 
                 Spacer()
                 
                 // 前进按钮
                 Button(action: {
                     // 记录按钮点击事件
-                    GameLogger.shared.logInputEvent(
-                        type: .tap,
-                        target: "前进按钮",
-                        details: "当前历史索引: \(historyIndex)"
-                    )
+                    OSLogger.logInputEvent("点击 - 目标: 前进按钮 - 详情: 当前历史索引: \(historyIndex)")
                     
                     if historyIndex > 0 {
                         historyIndex -= 1
@@ -180,7 +165,7 @@ struct GameView: View {
                             .font(.title2)
                     }
                     .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.blue.opacity(0.2)))
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.accentColor.opacity(0.2)))
                 }
                 .disabled(historyIndex <= 0)
             }
@@ -191,26 +176,18 @@ struct GameView: View {
         .navigationBarBackButtonHidden(false)
         .onAppear {
             // 记录界面初始化事件
-            GameLogger.shared.logInputEvent(
-                type: .tap,
-                target: "GameView界面",
-                details: "界面初始化 - A队: \(game.teamA.player1) & \(game.teamA.player2) (\(game.teamA.currentLevel.rawValue)), B队: \(game.teamB.player1) & \(game.teamB.player2) (\(game.teamB.currentLevel.rawValue))"
-            )
+            OSLogger.logInputEvent("点击 - 目标: GameView界面 - 详情: 界面初始化 - A队: \(game.teamA.player1) & \(game.teamA.player2) (\(game.teamA.currentLevel.rawValue)), B队: \(game.teamB.player1) & \(game.teamB.player2) (\(game.teamB.currentLevel.rawValue))")
             
             // 初始化显示状态
             displayedGame = game
-            NSLog("📱 [GameView-onAppear] 初始化 displayedGame - teamA: \(displayedGame.teamA.currentLevel.rawValue), teamB: \(displayedGame.teamB.currentLevel.rawValue)")
+            OSLogger.logUIAction("[GameView-onAppear] 初始化 displayedGame - teamA: \(displayedGame.teamA.currentLevel.rawValue), teamB: \(displayedGame.teamB.currentLevel.rawValue)")
         }
         .onDisappear {
             // 记录界面切换事件
-            GameLogger.shared.logInputEvent(
-                type: .tap,
-                target: "GameView界面",
-                details: "界面切换 - 离开对局界面"
-            )
+            OSLogger.logInputEvent("点击 - 目标: GameView界面 - 详情: 界面切换 - 离开对局界面")
             
             // 不在这里清空currentGame，避免导航冲突
-            NSLog("📱 [GameView-onDisappear] 视图即将消失")
+            OSLogger.logUIAction("[GameView-onDisappear] 视图即将消失")
         }
     }
     
@@ -219,13 +196,26 @@ struct GameView: View {
         if historyIndex == 0 {
             // 如果索引为0，显示当前状态
             displayedGame = game
-        } else if game.rounds.count >= historyIndex {
+        } else if historyIndex <= game.rounds.count {
             // 创建一个游戏副本，只包含到指定历史点的回合
             var historicalGame = game
-            historicalGame.rounds = Array(game.rounds.prefix(game.rounds.count - historyIndex))
+            let roundsToShow = max(0, game.rounds.count - historyIndex)
+            historicalGame.rounds = Array(game.rounds.prefix(roundsToShow))
             
-            // 从最后一轮获取队伍状态
-            if let lastRound = historicalGame.rounds.last {
+            if historicalGame.rounds.isEmpty {
+                // 重置到初始状态
+                historicalGame.teamA.currentLevel = .two
+                historicalGame.teamB.currentLevel = .two
+                historicalGame.teamA.isWinner = false
+                historicalGame.teamB.isWinner = false
+                historicalGame.isCompleted = false
+                // 保持初始庄家状态
+                if let firstRound = game.rounds.first {
+                    historicalGame.teamA.isDealer = firstRound.teamA.isDealer
+                    historicalGame.teamB.isDealer = firstRound.teamB.isDealer
+                }
+            } else if let lastRound = historicalGame.rounds.last {
+                // 从最后一轮获取队伍状态
                 historicalGame.teamA = lastRound.teamA
                 historicalGame.teamB = lastRound.teamB
             }
@@ -240,11 +230,7 @@ struct GameView: View {
         guard game.rounds.count > 0 && historyIndex == 0 else { return }
         
         // 记录删除操作
-        GameLogger.shared.logInputEvent(
-            type: .swipe,
-            target: "最后一轮记录",
-            details: "删除第\(game.rounds.count)轮"
-        )
+        OSLogger.logInputEvent("滑动 - 目标: 最后一轮记录 - 详情: 删除第\(game.rounds.count)轮")
         
         // 删除最后一轮
         game.rounds.removeLast()
@@ -425,7 +411,7 @@ struct RoundHistoryRow: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 4)
-        .background(Color.gray.opacity(0.05))
+        .background(Color(UIColor.systemGray6).opacity(0.5))
         .cornerRadius(8)
         .padding(.horizontal, 4)
         .padding(.vertical, 2)
@@ -495,20 +481,16 @@ struct TeamActionsView: View {
                 Divider()
                 
                 // 双贡按钮
-                ActionButton(title: "双贡", systemImage: "arrow.up.arrow.up", color: .red) {
+                ActionButton(title: "双贡", systemImage: "arrow.up.2", color: .red) {
                     // 记录按钮点击事件
-                    GameLogger.shared.logInputEvent(
-                        type: .tap,
-                        target: "双贡按钮",
-                        details: "操作队伍: \(actingTeam.player1) & \(actingTeam.player2)"
-                    )
+                    OSLogger.logInputEvent("点击 - 目标: 双贡按钮 - 详情: 操作队伍: \(actingTeam.player1) & \(actingTeam.player2)")
                     
-                    NSLog("📱 [视图-双贡按钮点击] actingTeam: \(actingTeam.player1)&\(actingTeam.player2), opposingTeam: \(opposingTeam.player1)&\(opposingTeam.player2)")
-                    NSLog("📱 [视图-双贡前] game.teamA: \(game.teamA.currentLevel.rawValue), game.teamB: \(game.teamB.currentLevel.rawValue)")
+                    OSLogger.logUIAction("[视图-双贡按钮点击] actingTeam: \(actingTeam.player1)&\(actingTeam.player2), opposingTeam: \(opposingTeam.player1)&\(opposingTeam.player2)")
+                    OSLogger.logUIAction("[视图-双贡前] game.teamA: \(game.teamA.currentLevel.rawValue), game.teamB: \(game.teamB.currentLevel.rawValue)")
                     
                     // 使用新的简化API
                     game.doubleContribution(fromTeamId: actingTeam.id)
-                    NSLog("📱 [视图-双贡完成] game.teamA: \(game.teamA.currentLevel.rawValue), game.teamB: \(game.teamB.currentLevel.rawValue)")
+                    OSLogger.logUIAction("[视图-双贡完成] game.teamA: \(game.teamA.currentLevel.rawValue), game.teamB: \(game.teamB.currentLevel.rawValue)")
                     
                     isPresented = false
                     onActionComplete?()

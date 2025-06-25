@@ -13,7 +13,11 @@
       "Bash(xcrun simctl spawn:*)",
       "Bash(swift:*)",
       "Bash(timeout 10 xcrun simctl spawn booted log stream:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(xcrun simctl get_app_container:*)",
+      "Bash(log show:*)",
+      "Bash(sudo log collect:*)"
     ],
     "deny": []
   }

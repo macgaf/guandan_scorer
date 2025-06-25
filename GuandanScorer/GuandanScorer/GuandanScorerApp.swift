@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 @main
 struct GuandanScorerApp: App {
@@ -13,7 +14,7 @@ struct GuandanScorerApp: App {
     @StateObject private var gameManager = GameManager()
 
     init() {
-        NSLog(" GuandanScorerApp ")
+        OSLogger.logInitialization("GuandanScorerApp 应用初始化")
     }
 
     var body: some Scene {
@@ -21,7 +22,7 @@ struct GuandanScorerApp: App {
             MainView()
                 .environmentObject(gameManager)
                 .onAppear {
-                    NSLog(" MainView ")
+                    OSLogger.logUIAction("MainView 主界面显示")
                 }
         }
     }

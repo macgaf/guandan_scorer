@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 // 惯蛋级别
 enum GuandanLevel: String, CaseIterable, Identifiable, Codable {
@@ -234,8 +235,8 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             toTeam = teamA
         }
         
-        NSLog("🎯 [双贡开始] fromTeam: \(fromTeam.player1)&\(fromTeam.player2)(\(fromTeam.currentLevel.rawValue)), toTeam: \(toTeam.player1)&\(toTeam.player2)(\(toTeam.currentLevel.rawValue))")
-        NSLog("🎯 [双贡前庄家] fromTeam.isDealer: \(fromTeam.isDealer), toTeam.isDealer: \(toTeam.isDealer)")
+        OSLogger.logGameAction("[双贡开始] fromTeam: \(fromTeam.player1)&\(fromTeam.player2)(\(fromTeam.currentLevel.rawValue)), toTeam: \(toTeam.player1)&\(toTeam.player2)(\(toTeam.currentLevel.rawValue))")
+        OSLogger.logGameAction("[双贡前庄家] fromTeam.isDealer: \(fromTeam.isDealer), toTeam.isDealer: \(toTeam.isDealer)")
         
         let oldLevel = toTeam.currentLevel
         
@@ -244,33 +245,33 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             toTeam.isWinner = true
             isCompleted = true
             endTime = Date()
-            NSLog("🎯 [双贡胜利] \(toTeam.player1)&\(toTeam.player2) 在A级别时接受双贡，直接获胜")
+            OSLogger.logGameAction("[双贡胜利] \(toTeam.player1)&\(toTeam.player2) 在A级别时接受双贡，直接获胜")
         } else {
             // 如果对方当前是2~K，对方升3级，最多升级到A1
             let newLevel = toTeam.currentLevel.limitedLevelUp(by: 3)
             toTeam.currentLevel = newLevel
-            NSLog("🎯 [双贡升级] \(toTeam.player1)&\(toTeam.player2): \(oldLevel.rawValue) -> \(newLevel.rawValue)")
+            OSLogger.logGameAction("[双贡升级] \(toTeam.player1)&\(toTeam.player2): \(oldLevel.rawValue) -> \(newLevel.rawValue)")
             
             // 转换庄家到受贡方
             if fromTeam.isDealer {
                 toTeam.isDealer = true
                 fromTeam.isDealer = false
-                NSLog("🎯 [双贡庄家转换] 庄家从 \(fromTeam.player1)&\(fromTeam.player2) 转到 \(toTeam.player1)&\(toTeam.player2)")
+                OSLogger.logGameAction("[双贡庄家转换] 庄家从 \(fromTeam.player1)&\(fromTeam.player2) 转到 \(toTeam.player1)&\(toTeam.player2)")
             }
         }
         
         // 更新游戏中的队伍状态
-        NSLog("🎯 [双贡前游戏状态] teamA: \(teamA.player1)&\(teamA.player2)(\(teamA.currentLevel.rawValue)), teamB: \(teamB.player1)&\(teamB.player2)(\(teamB.currentLevel.rawValue))")
+        OSLogger.logGameAction("[双贡前游戏状态] teamA: \(teamA.player1)&\(teamA.player2)(\(teamA.currentLevel.rawValue)), teamB: \(teamB.player1)&\(teamB.player2)(\(teamB.currentLevel.rawValue))")
         if fromTeamId == teamA.id {
             teamA = fromTeam
             teamB = toTeam
-            NSLog("🎯 [双贡更新游戏] teamA=fromTeam, teamB=toTeam")
+            OSLogger.logGameAction("[双贡更新游戏] teamA=fromTeam, teamB=toTeam")
         } else {
             teamA = toTeam
             teamB = fromTeam
-            NSLog("🎯 [双贡更新游戏] teamA=toTeam, teamB=fromTeam")
+            OSLogger.logGameAction("[双贡更新游戏] teamA=toTeam, teamB=fromTeam")
         }
-        NSLog("🎯 [双贡后游戏状态] teamA: \(teamA.player1)&\(teamA.player2)(\(teamA.currentLevel.rawValue)), teamB: \(teamB.player1)&\(teamB.player2)(\(teamB.currentLevel.rawValue))")
+        OSLogger.logGameAction("[双贡后游戏状态] teamA: \(teamA.player1)&\(teamA.player2)(\(teamA.currentLevel.rawValue)), teamB: \(teamB.player1)&\(teamB.player2)(\(teamB.currentLevel.rawValue))")
         
         // 记录回合
         var newRound = Round(teamA: teamA, teamB: teamB)
@@ -281,8 +282,8 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
         
         // 生成日志信息
         newRound.generateLogMessage()
-        NSLog("回合日志: \(newRound.logMessage)")
-        GameLogger.shared.writeLog(newRound.logMessage)
+        OSLogger.logGameAction("回合日志: \(newRound.logMessage)")
+        OSLogger.logGameAction("[回合日志写入] \(newRound.logMessage)")
         
         rounds.append(newRound)
     }
@@ -297,12 +298,12 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             toTeam.isWinner = true
             isCompleted = true
             endTime = Date()
-            NSLog("🎯 [单贡胜利] \(toTeam.player1)&\(toTeam.player2) 在A级别时接受单贡，直接获胜")
+            OSLogger.logGameAction("[单贡胜利] \(toTeam.player1)&\(toTeam.player2) 在A级别时接受单贡，直接获胜")
         } else {
             // 如果对方当前是2~K，对方升2级，最多升级到A1
             let newLevel = toTeam.currentLevel.limitedLevelUp(by: 2)
             toTeam.currentLevel = newLevel
-            NSLog("🎯 [单贡升级] \(toTeam.player1)&\(toTeam.player2): \(oldLevel.rawValue) -> \(newLevel.rawValue)")
+            OSLogger.logGameAction("[单贡升级] \(toTeam.player1)&\(toTeam.player2): \(oldLevel.rawValue) -> \(newLevel.rawValue)")
             
             // 转换庄家到受贡方
             if fromTeam.isDealer {
@@ -338,8 +339,8 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
         
         // 生成日志信息
         newRound.generateLogMessage()
-        NSLog("回合日志: \(newRound.logMessage)")
-        GameLogger.shared.writeLog(newRound.logMessage)
+        OSLogger.logGameAction("回合日志: \(newRound.logMessage)")
+        OSLogger.logGameAction("[回合日志写入] \(newRound.logMessage)")
         
         rounds.append(newRound)
     }
@@ -370,8 +371,8 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             newRound.dealerTeamId = team.id // 自贡后自己还是庄家
             // 生成日志信息
             newRound.generateLogMessage()
-            NSLog("回合日志: \(newRound.logMessage)")
-            GameLogger.shared.writeLog(newRound.logMessage)
+            OSLogger.logGameAction("回合日志: \(newRound.logMessage)")
+            OSLogger.logGameAction("[回合日志写入] \(newRound.logMessage)")
             
             rounds.append(newRound)
             return
@@ -414,8 +415,8 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             
             // 生成日志信息
             newRound.generateLogMessage()
-            NSLog("回合日志: \(newRound.logMessage)")
-            GameLogger.shared.writeLog(newRound.logMessage)
+            OSLogger.logGameAction("回合日志: \(newRound.logMessage)")
+            OSLogger.logGameAction("[回合日志写入] \(newRound.logMessage)")
             
             rounds.append(newRound)
         }
@@ -443,8 +444,8 @@ struct Game: Codable, Identifiable, Hashable, Equatable {
             finalRound.dealerTeamId = team.id // 获胜方应该是庄家
             // 生成日志信息
             finalRound.generateLogMessage()
-            NSLog("回合日志: \(finalRound.logMessage)")
-            GameLogger.shared.writeLog(finalRound.logMessage)
+            OSLogger.logGameAction("回合日志: \(finalRound.logMessage)")
+            OSLogger.logGameAction("[回合日志写入] \(finalRound.logMessage)")
             
             rounds.append(finalRound)
         }
@@ -484,30 +485,30 @@ class GameManager: ObservableObject {
         currentGame = newGame
         historyIndex = 0 // 重置历史索引
         saveGames()
-        NSLog("🔍 创建新游戏: \(teamA.player1) & \(teamA.player2) vs \(teamB.player1) & \(teamB.player2)")
+        OSLogger.logInitialization("创建新游戏: \(teamA.player1) & \(teamA.player2) vs \(teamB.player1) & \(teamB.player2)")
         return newGame
     }
     
     // 更新当前游戏
     func updateCurrentGame(game: Game) {
-        NSLog("💾 [GameManager-更新游戏] 开始更新游戏 ID: \(game.id)")
-        NSLog("💾 [GameManager-更新前] teamA: \(game.teamA.currentLevel.rawValue), teamB: \(game.teamB.currentLevel.rawValue)")
+        OSLogger.logDataOperation("[GameManager-更新游戏] 开始更新游戏 ID: \(game.id)")
+        OSLogger.logDataOperation("[GameManager-更新前] teamA: \(game.teamA.currentLevel.rawValue), teamB: \(game.teamB.currentLevel.rawValue)")
         
         if let index = games.firstIndex(where: { $0.id == game.id }) {
-            NSLog("💾 [GameManager-找到游戏] 在索引 \(index)")
-            NSLog("💾 [GameManager-旧游戏状态] teamA: \(games[index].teamA.currentLevel.rawValue), teamB: \(games[index].teamB.currentLevel.rawValue)")
+            OSLogger.logDataOperation("[GameManager-找到游戏] 在索引 \(index)")
+            OSLogger.logDataOperation("[GameManager-旧游戏状态] teamA: \(games[index].teamA.currentLevel.rawValue), teamB: \(games[index].teamB.currentLevel.rawValue)")
             
             games[index] = game
             currentGame = game
             historyIndex = 0 // 重置历史索引
             
-            NSLog("💾 [GameManager-更新后] teamA: \(games[index].teamA.currentLevel.rawValue), teamB: \(games[index].teamB.currentLevel.rawValue)")
-            NSLog("💾 [GameManager-currentGame] teamA: \(currentGame?.teamA.currentLevel.rawValue ?? "nil"), teamB: \(currentGame?.teamB.currentLevel.rawValue ?? "nil")")
+            OSLogger.logDataOperation("[GameManager-更新后] teamA: \(games[index].teamA.currentLevel.rawValue), teamB: \(games[index].teamB.currentLevel.rawValue)")
+            OSLogger.logDataOperation("[GameManager-currentGame] teamA: \(currentGame?.teamA.currentLevel.rawValue ?? "nil"), teamB: \(currentGame?.teamB.currentLevel.rawValue ?? "nil")")
             
             saveGames()
-            NSLog("💾 [GameManager-保存完成]")
+            OSLogger.logDataOperation("[GameManager-保存完成]")
         } else {
-            NSLog("💾 [GameManager-错误] 未找到游戏 ID: \(game.id)")
+            OSLogger.logDataOperation("[GameManager-错误] 未找到游戏 ID: \(game.id)")
         }
     }
     
@@ -589,7 +590,7 @@ class GameManager: ObservableObject {
         // 使用JSON文件存储替代UserDefaults
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            NSLog("无法获取文档目录")
+            OSLogger.logDataOperation("无法获取文档目录")
             return
         }
         
@@ -598,9 +599,9 @@ class GameManager: ObservableObject {
         do {
             let encoded = try JSONEncoder().encode(games)
             try encoded.write(to: gameDataURL)
-            NSLog("游戏数据已保存到: \(gameDataURL.path)")
+            OSLogger.logDataOperation("游戏数据已保存到: \(gameDataURL.path)")
         } catch {
-            NSLog("保存游戏数据失败: \(error)")
+            OSLogger.logDataOperation("保存游戏数据失败: \(error)")
         }
     }
     
@@ -608,17 +609,17 @@ class GameManager: ObservableObject {
     func loadGames() {
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            NSLog("无法获取文档目录")
+            OSLogger.logDataOperation("无法获取文档目录")
             return
         }
         
         let gameDataURL = documentsDirectory.appendingPathComponent("games.json")
-        NSLog("尝试从以下路径加载游戏数据: \(gameDataURL.path)")
+        OSLogger.logDataOperation("尝试从以下路径加载游戏数据: \(gameDataURL.path)")
         
         // 检查文件是否存在
         guard fileManager.fileExists(atPath: gameDataURL.path) else {
-            NSLog("游戏数据文件不存在，使用空数据")
-            NSLog("当前games数组大小: \(games.count)")
+            OSLogger.logDataOperation("游戏数据文件不存在，使用空数据")
+            OSLogger.logDataOperation("当前games数组大小: \(games.count)")
             return
         }
         
@@ -626,10 +627,10 @@ class GameManager: ObservableObject {
             let data = try Data(contentsOf: gameDataURL)
             let decodedGames = try JSONDecoder().decode([Game].self, from: data)
             games = decodedGames
-            NSLog("已加载 \(games.count) 个游戏记录")
+            OSLogger.logDataOperation("已加载 \(games.count) 个游戏记录")
         } catch {
-            NSLog("加载游戏数据失败: \(error)")
-            NSLog("当前games数组大小: \(games.count)")
+            OSLogger.logDataOperation("加载游戏数据失败: \(error)")
+            OSLogger.logDataOperation("当前games数组大小: \(games.count)")
         }
     }
     
@@ -644,7 +645,7 @@ class GameManager: ObservableObject {
         // 清除文件中的数据
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            NSLog("无法获取文档目录")
+            OSLogger.logDataOperation("无法获取文档目录")
             return
         }
         
@@ -654,13 +655,10 @@ class GameManager: ObservableObject {
         do {
             try fileManager.removeItem(at: gameDataURL)
         } catch {
-            NSLog("删除游戏数据文件失败: \(error)")
+            OSLogger.logDataOperation("删除游戏数据文件失败: \(error)")
         }
         
-        // 清除日志文件
-        GameLogger.shared.clearLogFile()
-        
-        NSLog("所有数据已清除")
+        OSLogger.logDataOperation("所有数据已清除")
     }
     
     // 清除当前游戏的所有回合数据
@@ -686,30 +684,30 @@ class GameManager: ObservableObject {
             historyIndex = 0
             
             saveGames()
-            NSLog("🔍 已清除游戏回合数据: \(clearedGame.teamA.player1) & \(clearedGame.teamA.player2) vs \(clearedGame.teamB.player1) & \(clearedGame.teamB.player2)")
+            OSLogger.logInitialization("已清除游戏回合数据: \(clearedGame.teamA.player1) & \(clearedGame.teamA.player2) vs \(clearedGame.teamB.player1) & \(clearedGame.teamB.player2)")
         }
     }
     
     init() {
-        NSLog("🔍 GameManager初始化开始")
+        OSLogger.logInitialization("GameManager初始化开始")
         
         // 测试文件系统访问
         let fileManager = FileManager.default
         if let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
-            NSLog("🔍 Documents目录: \(documentsDirectory.path)")
+            OSLogger.logInitialization("Documents目录: \(documentsDirectory.path)")
         } else {
-            NSLog("🔍 无法获取Documents目录")
+            OSLogger.logInitialization("无法获取Documents目录")
         }
         
         loadGames()
-        NSLog("🔍 GameManager初始化完成，games数量: \(games.count)")
+        OSLogger.logInitialization("GameManager初始化完成，games数量: \(games.count)")
         if !games.isEmpty {
-            NSLog("🔍 现有游戏:")
+            OSLogger.logInitialization("现有游戏:")
             for (index, game) in games.enumerated() {
-                NSLog("  游戏\(index + 1): \(game.teamA.player1) & \(game.teamA.player2) vs \(game.teamB.player1) & \(game.teamB.player2)")
+                OSLogger.logInitialization("  游戏\(index + 1): \(game.teamA.player1) & \(game.teamA.player2) vs \(game.teamB.player1) & \(game.teamB.player2)")
             }
         } else {
-            NSLog("🔍 没有现有游戏")
+            OSLogger.logInitialization("没有现有游戏")
         }
     }
 }

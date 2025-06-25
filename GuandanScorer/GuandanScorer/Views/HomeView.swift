@@ -18,57 +18,70 @@ struct HomeView: View {
             .padding(.horizontal)
             
             // 对局列表
-            List {
-                ForEach(gameManager.filteredGames(searchText: searchText)) { game in
-                    GameRowView(game: game)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            // 记录游戏选择事件
-                            GameLogger.shared.logInputEvent(
-                                type: .tap,
-                                target: "游戏列表项",
-                                details: "选择游戏: \(game.teamA.player1) & \(game.teamA.player2) vs \(game.teamB.player1) & \(game.teamB.player2)"
-                            )
-                            
-                            // 先清除currentGame，然后设置新的游戏，确保onChange被触发
-                            DispatchQueue.main.async {
-                                gameManager.currentGame = nil
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-                                    gameManager.currentGame = game
+            ScrollViewReader { proxy in
+                List {
+                    ForEach(gameManager.filteredGames(searchText: searchText)) { game in
+                        GameRowView(game: game)
+                            .id(game.id)  // 添加id以支持滚动定位
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                // 记录游戏选择事件
+                                OSLogger.logInputEvent("点击 - 目标: 游戏列表项 - 详情: 选择游戏: \(game.teamA.player1) & \(game.teamA.player2) vs \(game.teamB.player1) & \(game.teamB.player2)")
+                                
+                                // 先清除currentGame，然后设置新的游戏，确保onChange被触发
+                                DispatchQueue.main.async {
+                                    gameManager.currentGame = nil
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                                        gameManager.currentGame = game
+                                    }
                                 }
                             }
-                        }
-                        .swipeActions(edge: .trailing) {
-                            // 删除按钮
-                            Button(role: .destructive) {
-                                withAnimation {
-                                    gameManager.deleteGame(game: game)
+                            .swipeActions(edge: .trailing) {
+                                // 删除按钮
+                                Button(role: .destructive) {
+                                    withAnimation {
+                                        gameManager.deleteGame(game: game)
+                                    }
+                                } label: {
+                                    Label("删除", systemImage: "trash")
                                 }
-                            } label: {
-                                Label("删除", systemImage: "trash")
+                                
+                                // 再来一局按钮
+                                Button {
+                                    showNewGameSheet = true
+                                    gameManager.prepareNewGame(from: game)
+                                } label: {
+                                    Label("再来一局", systemImage: "arrow.clockwise")
+                                }
+                                .tint(.blue)
                             }
-                            
-                            // 再来一局按钮
-                            Button {
-                                showNewGameSheet = true
-                                gameManager.prepareNewGame(from: game)
-                            } label: {
-                                Label("再来一局", systemImage: "arrow.clockwise")
-                            }
-                            .tint(.blue)
+                    }
+                }
+                .listStyle(PlainListStyle())
+                .onChange(of: gameManager.games.count) { oldCount, newCount in
+                    // 当游戏数量增加时（创建新游戏），自动滚动到最新的游戏
+                    if newCount > oldCount, let latestGame = gameManager.games.first {
+                        withAnimation {
+                            proxy.scrollTo(latestGame.id, anchor: .top)
                         }
+                    }
+                }
+                .onAppear {
+                    // 首次显示时，如果有当前游戏，滚动到它
+                    if let currentGame = gameManager.currentGame {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation {
+                                proxy.scrollTo(currentGame.id, anchor: .center)
+                            }
+                        }
+                    }
                 }
             }
-            .listStyle(PlainListStyle())
             
             // 来一局按钮
             Button(action: {
                 // 记录新建游戏按钮点击
-                GameLogger.shared.logInputEvent(
-                    type: .tap,
-                    target: "来一局按钮",
-                    details: "点击新建游戏"
-                )
+                OSLogger.logInputEvent("点击 - 目标: 来一局按钮 - 详情: 点击新建游戏")
                 
                 showNewGameSheet = true
             }) {
@@ -77,7 +90,7 @@ struct HomeView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(Color.accentColor)
                     .cornerRadius(10)
             }
             .padding()
@@ -85,11 +98,7 @@ struct HomeView: View {
         .navigationTitle("惯蛋记分器")
         .onAppear {
             // 记录主界面初始化
-            GameLogger.shared.logInputEvent(
-                type: .tap,
-                target: "HomeView界面",
-                details: "界面初始化 - 游戏列表 (\(gameManager.games.count) 个游戏)"
-            )
+            OSLogger.logInputEvent("点击 - 目标: HomeView界面 - 详情: 界面初始化 - 游戏列表 (\(gameManager.games.count) 个游戏)")
         }
         .sheet(isPresented: $showNewGameSheet) {
             NewGameView(
