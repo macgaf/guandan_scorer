@@ -33,10 +33,6 @@ final class GuandanScorerUITests: XCTestCase {
         // 这可能需要根据实际的清理机制调整
     }
     
-    /// 创建测试游戏数据
-    private func createTestGame() {
-        createTestGame(app: app)
-    }
     
     // MARK: - TC_UI_001: 对局信息正确显示测试
     
@@ -217,7 +213,7 @@ final class GuandanScorerUITests: XCTestCase {
                          "左滑后应该显示删除或再来一局按钮")
         } else {
             // 没有游戏记录，先完整创建一个游戏
-            createTestGame()
+            createTestGame(app: app)
             
             // 等待游戏创建完成
             Thread.sleep(forTimeInterval: 2.0)
@@ -556,7 +552,7 @@ final class GuandanScorerUITests: XCTestCase {
     
     func testTC_UI_012_PlayerNamesDisplay() throws {
         // 创建测试游戏
-        createTestGame()
+        createTestGame(app: app)
         
         // 验证A区和B区显示队员姓名
         let teamANames = app.staticTexts["张三 & 李四"]
@@ -574,7 +570,7 @@ final class GuandanScorerUITests: XCTestCase {
     
     func testTC_UI_013_CurrentLevelDisplay() throws {
         // 创建测试游戏
-        createTestGame()
+        createTestGame(app: app)
         
         // 验证初始级别显示
         let teamALevel = app.staticTexts.containing(NSPredicate(format: "label CONTAINS '2'")).firstMatch
@@ -588,7 +584,7 @@ final class GuandanScorerUITests: XCTestCase {
     
     func testTC_UI_014_DealerIndicatorDisplay() throws {
         // 创建测试游戏
-        createTestGame()
+        createTestGame(app: app)
         
         // 验证庄家标识显示 - 查找星星图标或庄家文字
         let starIcon = app.images.containing(NSPredicate(format: "identifier CONTAINS 'star'")).firstMatch
@@ -600,7 +596,7 @@ final class GuandanScorerUITests: XCTestCase {
     
     func testTC_UI_015_TeamAreaTapShowsContributionOptions() throws {
         // 创建测试游戏
-        createTestGame()
+        createTestGame(app: app)
         
         // 点击A队区域 - 直接使用坐标点击左上角的TeamScoreView
         let window = app.windows.firstMatch
@@ -630,7 +626,7 @@ final class GuandanScorerUITests: XCTestCase {
     
     func testTC_UI_016_ContributionButtonsFunctionality() throws {
         // 创建测试游戏
-        createTestGame()
+        createTestGame(app: app)
         
         // 点击A队区域弹出贡牌选择 - 直接使用坐标点击左上角的TeamScoreView
         let window = app.windows.firstMatch

@@ -26,10 +26,6 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     // MARK: - Helper Methods
     
-    /// 创建并开始一个测试游戏
-    private func createAndStartTestGame() {
-        createTestGame(app: app)
-    }
     
     /// 执行一轮游戏操作
     private func performGameRound(team: String, action: String) {
@@ -69,7 +65,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_UI_017_GameEndState() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 执行导致游戏结束的操作序列
         // 让B队升到A1级别，然后A队双贡导致B队获胜
@@ -105,7 +101,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_UI_018_RoundHistoryList() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 进行多轮游戏
         let actions = ["双贡", "单贡", "自贡"]
@@ -133,7 +129,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_UI_019_ScrollToLatestRecord() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 进行多轮游戏以产生足够的记录
         for i in 0..<8 {
@@ -156,7 +152,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_UI_020_DeleteLastRoundFunction() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 进行几轮游戏
         performGameRound(team: "A", action: "双贡")
@@ -223,7 +219,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_UI_021_UndoButtonFunction() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 进行多轮游戏
         performGameRound(team: "A", action: "双贡")
@@ -251,7 +247,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_UI_021b_UndoToEmptyState() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 进行一轮游戏
         performGameRound(team: "A", action: "双贡")
@@ -286,7 +282,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_UI_022_RedoButtonFunction() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 进行游戏操作
         performGameRound(team: "A", action: "双贡")
@@ -401,7 +397,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_IT_002_DataTransferBetweenViews() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 进行游戏操作
         performGameRound(team: "A", action: "双贡")
@@ -445,7 +441,7 @@ final class GuandanScorerUITestsExtended: XCTestCase {
     
     func testTC_IT_003_StateChangeSynchronization() throws {
         // 创建测试游戏
-        createAndStartTestGame()
+        createTestGame(app: app)
         
         // 记录初始状态
         let initialLevel = getCurrentTeamLevel("B")

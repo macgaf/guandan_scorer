@@ -59,10 +59,6 @@ struct MainView: View {
         }
         // 使用系统默认的颜色方案
         .preferredColorScheme(nil)
-        // 横屏模式支持
-        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-            // 横屏模式逻辑可以根据需要添加
-        }
     }
 }
 
