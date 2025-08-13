@@ -28,15 +28,15 @@ graph TD
     style F fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#000
 ```
 
-- **需求**: `需求.md` - 详细的功能需求和游戏规则说明（人工手写，多轮修订）
-- **代码**: `GuandanScorer/` - 包含所有Swift源代码
-  - `Models/GameScore.swift` - 游戏核心逻辑
-  - `Views/` - 所有UI视图组件
-- **测试计划**: `testing_plan.md` - 测试策略和范围
-- **测试用例**: `test_cases.md` - 详细的测试场景
+- **需求**: [`需求.md`](需求.md) - 详细的功能需求和游戏规则说明（人工手写，多轮修订）
+- **代码**: [`GuandanScorer/`](GuandanScorer/) - 包含所有Swift源代码
+  - [`Models/GameScore.swift`](GuandanScorer/GuandanScorer/Models/GameScore.swift) - 游戏核心逻辑
+  - [`Views/`](GuandanScorer/GuandanScorer/Views/) - 所有UI视图组件
+- **测试计划**: [`testing_plan.md`](testing_plan.md) - 测试策略和范围
+- **测试用例**: [`test_cases.md`](test_cases.md) - 详细的测试场景
 - **测试代码**:
-  - `GuandanScorerTests/` - 单元测试
-  - `GuandanScorerUITests/` - UI自动化测试
+  - [`GuandanScorerTests/`](GuandanScorer/GuandanScorerTests/) - 单元测试
+  - [`GuandanScorerUITests/`](GuandanScorer/GuandanScorerUITests/) - UI自动化测试
 - **项目文档**: `README.md` - 本文档
 
 ## 项目简介
@@ -86,7 +86,7 @@ graph TD
 1. **克隆或下载项目**
 
 ```bash
-git clone [项目地址]
+git clone https://github.com/macgaf/guandan_scorer.git
 cd guandan_scorer
 ```
 
@@ -357,6 +357,11 @@ guandan_scorer/
 
 本项目仅供学习和个人使用。
 
+## 项目地址
+
+- **GitHub仓库**: https://github.com/macgaf/guandan_scorer
+- **问题反馈**: https://github.com/macgaf/guandan_scorer/issues
+
 ## 联系方式
 
-如有问题或建议，请通过项目Issue页面反馈。
+如有问题或建议，请通过[项目Issue页面](https://github.com/macgaf/guandan_scorer/issues)反馈。
